@@ -1,0 +1,80 @@
+---
+title: "Energy by State"
+author: "Sam Wigley"
+date: "August 1, 2016"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+library("reshape2")
+require(dplyr)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+setwd("c:/Users/swigley/Documents/Energy Data")
+getwd()
+list.files()
+energy = read.csv("annual_generation_state.csv",header=TRUE)
+gdp = read.csv("TotalGDP_By_State_1990-2015.csv",header=TRUE)
+pop = read.csv("US_POP_By_State_1990s-2014.csv",header=TRUE)
+
+tot_energy = subset(energy,TYPE.OF.PRODUCER=="Total Electric Power Industry")
+tot_energy = tot_energy[, !(colnames(tot_energy) %in% c("TYPE.OF.PRODUCER"))]
+pop = pop[, !(colnames(pop) %in% c("State"))]
+gdp = gdp[, !(colnames(gdp) %in% c("Area"))]
+pop <- melt(pop, id.vars = c("Code"), variable.name = "Year", variable.vale = "pop")
+gdp <- melt(gdp, id.vars = c("Code"), variable.name = "Year", variable.vale = "gdp")
+pop<-pop %>%
+  mutate(Year = substr(Year, 2, 5))
+
+gdp<-gdp %>%
+  mutate(Year = substr(Year, 2, 5))
+
+gdp["label"]<-"GDP"
+pop["label"]<-"Population"
+
+names(gdp)[names(gdp) == 'Code'] <- 'State'
+names(pop)[names(pop) == 'Code'] <- 'State'
+names(tot_energy)[names(tot_energy) == 'YEAR'] <- 'Year'
+names(tot_energy)[names(tot_energy) == 'STATE'] <- 'State'
+names(tot_energy)[names(tot_energy) == 'ENERGY.SOURCE'] <- 'label'
+names(tot_energy)[names(tot_energy) == 'GENERATION'] <- 'value'
+
+
+energy_by_pop_gdp_long <-rbind(pop,gdp,tot_energy)
+
+tot_energy_wide  <- dcast(energy_by_pop_gdp_long,  Year + State ~ label , value.var = 'value',fun.aggregate=mean)
+tot_energy_wide[is.na(tot_energy_wide)] <- 0
+
+tot_energy_wide  <- tot_energy_wide[,c('Year',  'State',
+  'Population',
+  'GDP',
+  'Coal',
+  'Petroleum',
+  'Natural Gas',
+  'Wood and Wood Derived Fuels',
+  'Nuclear',
+  'Solar Thermal and Photovoltaic',
+  'Wind',
+  'Geothermal',
+  'Hydroelectric Conventional',
+  'Other Biomass',
+  'Other Gases',
+  'Other',  
+  'Pumped Storage',
+  'Total')]
+  
+
+
+write.csv(tot_energy_wide,"annual_generation_state_clean.csv")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
