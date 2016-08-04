@@ -95,6 +95,11 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
       .attr("class", "mesh")
       .attr("d", path);
       
+      d3.csv("./annual_generation_state_clean.csv", function(d) {
+		//debugger;
+        return d;
+      }, plot_points);
+      
 
 });
 
@@ -140,23 +145,19 @@ function state_data(d) {
 
 function update_state(year,state,data) {
 
-        var map = svg.selectAll('path')
-                     .data(data)
-                     .enter()
-                     .append('path')
-                     .attr('d', path)
-                     .style('fill', 'lightBlue')
-                     .style('stroke', 'black')
-                     .style('stroke-width', 0.5);
+        g.selectAll("path").select('d')
+				 .data(data)
+				 .enter()
+				 .append('d')
+				 .style('fill', 'lightBlue')
+				 .style('stroke', 'black')
+				 .style('stroke-width', 0.5);
       
        debugger;	  
 	
 }
 
-d3.csv("./annual_generation_state_clean.csv", function(d) {
-		//debugger;
-        return d;
-      }, plot_points);
+
       
 
 function clicked(d) {
