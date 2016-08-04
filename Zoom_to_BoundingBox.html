@@ -31,6 +31,7 @@
 <script>
   name_id_map = {};
   id_name_map = {};
+  code_id_map = {};
   id_code_map = {};
 d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
@@ -39,6 +40,8 @@ d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", 
   for (var i = 0; i < names.length; i++) {
     name_id_map[names[i].name] = names[i].id;
     id_name_map[names[i].id] = names[i].name;
+	
+	code_id_map[names[i].code] = names[i].id;
     id_code_map[names[i].id] = names[i].code;
   }
   
@@ -82,7 +85,8 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
 //		  if(code == "TN") return "green";
 //		  else return "red";
 //		  })
-      .attr("class", "feature")
+		.attr("class", "feature")
+		.attr("id", function(d) {return id_code_map[d.id];})
 		.on('mouseover', function(d){
 			var code = id_code_map[d.id];
 			return document.getElementById('name').innerHTML=code;
@@ -95,25 +99,41 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
       .attr("class", "mesh")
       .attr("d", path);
       
+  d3.csv("./annual_generation_state_clean.csv", function(d) {
+	//debugger;
+	return d;
+  }, plot_points);
 
 });
 
 
-function plot_points(d) {
+function plot_points(energy_data) {
 	//alert(d.length);
 	
 	var by_year = d3.nest()
 		.key(function(d) { return d.Year; })
-		.entries(d);
+		.entries(energy_data);
+
 	var by_state = d3.nest()
 		.key(function(d) { return d.State; })
-		.entries(d);
+		.entries(energy_data);
+	
+	var by_state_id = d3.nest()
+		.key(function(d) { return code_id_map[d.State]; })
+		.entries(energy_data);
 		
-	for(year in by_year) {
-		update_year(by_year[year].values,by_year[year].key);
-	}
-
-	//debugger;
+//	for(year in by_year) {
+		update_year(by_year[0].values,by_year[0].key);
+//	}
+//	debugger;
+	
+//	g.selectAll("path")
+//	.selectAll("entergy")
+//	.data(by_year, function(d) { return d.key;} )
+//	.enter()
+//	.append("entergy")
+//	.attr("data","blue")
+	
 	
 }
 function update_countries(d) {
@@ -123,10 +143,14 @@ function update_countries(d) {
 }
 function update_year(leaf,year) {
 	//alert(year + ": " + leaf);
+	
+	var title = year;
+	
 	for (state in leaf) {
 		var stateYearData = leaf[state]
 		var stateName = stateYearData["State"];
 		update_state(year,stateName,stateYearData)
+		
 	}
 //	debugger;
 
@@ -139,24 +163,13 @@ function state_data(d) {
 }
 
 function update_state(year,state,data) {
-
-        var map = svg.selectAll('path')
-                     .data(data)
-                     .enter()
-                     .append('path')
-                     .attr('d', path)
-                     .style('fill', 'lightBlue')
-                     .style('stroke', 'black')
-                     .style('stroke-width', 0.5);
-      
-       debugger;	  
-	
+	alert(year + ", " + state + ", " + data)
+	g.select("#" + state).style("fill", function(d){ return "red";})
+	document.getElementById('name').innerHTML=year + " - " + state;
+    debugger;	  
 }
 
-d3.csv("./annual_generation_state_clean.csv", function(d) {
-		//debugger;
-        return d;
-      }, plot_points);
+
       
 
 function clicked(d) {
