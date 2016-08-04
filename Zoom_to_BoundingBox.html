@@ -27,14 +27,29 @@
 <body>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
+<div id="info"><h1 id="name"></h1></div>
 <script>
+  name_id_map = {};
+  id_name_map = {};
+  id_code_map = {};
+d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
+  
 
+  
+  for (var i = 0; i < names.length; i++) {
+    name_id_map[names[i].name] = names[i].id;
+    id_name_map[names[i].id] = names[i].name;
+    id_code_map[names[i].id] = names[i].code;
+  }
+  
+});
+  
 var width = 1400,
     height = 750,
     active = d3.select(null);
 
 var projection = d3.geo.albersUsa()
-    .scale(1500)
+    .scale(1000)
     .translate([width / 2, height / 2]);
 
 var path = d3.geo.path()
@@ -53,15 +68,26 @@ svg.append("rect")
 var g = svg.append("g")
     .style("stroke-width", "1.5px");
 
-d3.json("/us.json", function(error, us) {
+        
+d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
   if (error) throw error;
   
   g.selectAll("path")
       .data(topojson.feature(us, us.objects.states).features)
-    .enter().append("path")
+	  .enter()
+      .append("path")
       .attr("d", path)
+//      .style("fill",function(d) {
+//		  var code = id_code_map[d.id];
+//		  if(code == "TN") return "green";
+//		  else return "red";
+//		  })
       .attr("class", "feature")
-      .on("click", clicked);
+		.on('mouseover', function(d){
+			var code = id_code_map[d.id];
+			return document.getElementById('name').innerHTML=code;
+		})
+		.on('click',clicked);
 
       
   g.append("path")
@@ -72,13 +98,63 @@ d3.json("/us.json", function(error, us) {
 
 });
 
+
 function plot_points(d) {
 	//alert(d.length);
+	
+	var by_year = d3.nest()
+		.key(function(d) { return d.Year; })
+		.entries(d);
+	var by_state = d3.nest()
+		.key(function(d) { return d.State; })
+		.entries(d);
+		
+	for(year in by_year) {
+		update_year(by_year[year].values,by_year[year].key);
+	}
+
+	//debugger;
+	
+}
+function update_countries(d) {
+	return "blue"
+	//debugger;
+	
+}
+function update_year(leaf,year) {
+	//alert(year + ": " + leaf);
+	for (state in leaf) {
+		var stateYearData = leaf[state]
+		var stateName = stateYearData["State"];
+		update_state(year,stateName,stateYearData)
+	}
+//	debugger;
+
+	   
+	
+}
+function state_data(d) {
+	//alert(d);
+	//debugger;
+}
+
+function update_state(year,state,data) {
+
+        var map = svg.selectAll('path')
+                     .data(data)
+                     .enter()
+                     .append('path')
+                     .attr('d', path)
+                     .style('fill', 'lightBlue')
+                     .style('stroke', 'black')
+                     .style('stroke-width', 0.5);
+      
+       debugger;	  
 	
 }
 
 d3.csv("./annual_generation_state_clean.csv", function(d) {
-		debugger;
+		//debugger;
         return d;
       }, plot_points);
       
