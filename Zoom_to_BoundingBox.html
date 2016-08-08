@@ -33,6 +33,7 @@
   id_name_map = {};
   code_id_map = {};
   id_code_map = {};
+  us_total = {};
 d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 
@@ -76,31 +77,26 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
   if (error) throw error;
   
   g.selectAll("path")
-      .data(topojson.feature(us, us.objects.states).features)
+      .data(topojson.feature(us, us.objects.states).features, function(d) { return id_code_map[d.id];})
 	  .enter()
       .append("path")
       .attr("d", path)
-//      .style("fill",function(d) {
-//		  var code = id_code_map[d.id];
-//		  if(code == "TN") return "green";
-//		  else return "red";
-//		  })
-		.attr("class", "feature")
-		.attr("id", function(d) {return id_code_map[d.id];})
-		.on('mouseover', function(d){
+	  .attr("class", "feature")
+	  .attr("id", function(d) {return id_code_map[d.id];})
+	  .on('click',clicked)
+	  .on('mouseover', function(d){
 			var code = id_code_map[d.id];
 			return document.getElementById('name').innerHTML=code;
-		})
-		.on('click',clicked);
+		});
 
-      
+ //debugger;
   g.append("path")
       .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
       .attr("class", "mesh")
       .attr("d", path);
       
 
-  d3.csv("./annual_generation_state_clean.csv", function(d) {
+  d3.csv("./annual_generation_state_clean3.csv", function(d) {
 	//debugger;
 	return d;
   }, plot_points);
@@ -123,53 +119,67 @@ function plot_points(energy_data) {
 	var by_state_id = d3.nest()
 		.key(function(d) { return code_id_map[d.State]; })
 		.entries(energy_data);
-		
-//	for(year in by_year) {
-		update_year(by_year[0].values,by_year[0].key);
-//	}
-//	debugger;
-	
-//	g.selectAll("path")
-//	.selectAll("entergy")
-//	.data(by_year, function(d) { return d.key;} )
-//	.enter()
-//	.append("entergy")
-//	.attr("data","blue")
-	
-	
-}
-function update_countries(d) {
-	return "blue"
-	//debugger;
-	
-}
-function update_year(leaf,year) {
-	//alert(year + ": " + leaf);
-	
-	var title = year;
-	
-	for (state in leaf) {
-		var stateYearData = leaf[state]
-		var stateName = stateYearData["State"];
-		update_state(year,stateName,stateYearData)
+//debugger;		
+	for(year in by_year) {
+		//alert(year + ": " + by_year[year].key);
+		update_year(by_year[year].values,by_year[year].key);
+
 		
 	}
 //	debugger;
+	
+
+	
+	
+}
+
+function update_year(leaf,year) {
+	//alert(year + ": " + leaf);
+	//debugger;
+	
+	
+	for (l in leaf) {
+		if(leaf[l].State=='US-TOTAL') {
+			us_total = leaf[l]
+		}
+		
+	}
+	
+	var title = year;
+	
+	//g.selectAll("path").data(leaf,function(d) { return d.State; }).enter().append("path")
+
+	
+	for (state in leaf) {
+		//debugger;
+		var stateYearData = leaf[state]
+		var stateName = stateYearData["State"];
+		debugger;
+		g.select("#" + stateName).datum(stateYearData);
+		//update_state(year,stateName,stateYearData)
+		debugger;
+		
+	}
+
 
 	   
 	
 }
-function state_data(d) {
+//function state_data(d) {
 	//alert(d);
 	//debugger;
-}
+//}
 
 function update_state(year,state,data) {
-
-	alert(year + ", " + state + ", " + data)
-	g.select("#" + state).style("fill", function(d){ return "red";})
+	
+	//if(year=="2003"){
+//		alert(year + ", " + state + ", " + data.GDP / data.Population)
+//	}
+	//g.selectAll("#" + state).data(data).enter().append("#" + state);
+	g.select("#" + state).style("fill", function(d){ if((data.GDP/data.Population)>0.033) return "green"; else return "red";  })
+	
 	document.getElementById('name').innerHTML=year + " - " + state;
-    debugger;	  
+   // debugger;	  
 
 }
 
