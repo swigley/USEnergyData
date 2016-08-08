@@ -24,9 +24,10 @@
 }
 
 </style>
-<body>
+<body onload="startTimerLoop()">
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
+<script src="https://d3js.org/d3-timer.v1.min.js"></script>
 <div id="info"><h1 id="name"></h1></div>
 <script>
   name_id_map = {};
@@ -34,7 +35,10 @@
   code_id_map = {};
   id_code_map = {};
   us_total = {};
-d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
+  by_year = {};
+  var numerator = "Total";
+  var denominator = "Population";
+  d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 
   
@@ -62,6 +66,21 @@ var path = d3.geo.path()
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
+	
+	var updateNumerator = function() {console.log("updateNumerator"); numerator = d3.select("#num_sel").value; };
+	var updateDenominator = function() {console.log("updateDenominator"); denominator = d3.select("#den_sel").value; };
+	
+	var selectNum = d3.select("body").append("select");
+		selectNum.attr("id","num_sel");
+		selectNum.append("option","Coal").text("Coal");
+		selectNum.append("option","Petroleum").text("Petroleum");
+		selectNum.on("change",updateNumerator);
+		
+	var selectDen = d3.select("body").append("select");
+		selectDen.attr("id","den_sel");
+		selectDen.append("option","GDP").text("GDP");
+		selectDen.append("option","Population").text("Population");
+		selectDen.on("change",updateDenominator);
 
 svg.append("rect")
     .attr("class", "background")
@@ -82,7 +101,7 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
       .append("path")
       .attr("d", path)
 	  .attr("class", "feature")
-	  .attr("id", function(d) {return id_code_map[d.id];})
+	  .attr("id", function(d) { return id_code_map[d.id];})
 	  .on('click',clicked)
 	  .on('mouseover', function(d){
 			var code = id_code_map[d.id];
@@ -96,10 +115,8 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
       .attr("d", path);
       
 
-  d3.csv("./annual_generation_state_clean3.csv", function(d) {
-	//debugger;
-	return d;
-  }, plot_points);
+	  
+
 
 
 });
@@ -108,7 +125,7 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
 function plot_points(energy_data) {
 	//alert(d.length);
 	
-	var by_year = d3.nest()
+	by_year = d3.nest()
 		.key(function(d) { return d.Year; })
 		.entries(energy_data);
 
@@ -120,23 +137,22 @@ function plot_points(energy_data) {
 		.key(function(d) { return code_id_map[d.State]; })
 		.entries(energy_data);
 //debugger;		
-	for(year in by_year) {
+//	for(year in by_year) {
 		//alert(year + ": " + by_year[year].key);
-		update_year(by_year[year].values,by_year[year].key);
+//		update_year(by_year[year].values,by_year[year].key);
 
 		
-	}
+//	}
 //	debugger;
-	
 
-	
+
 	
 }
 
 function update_year(leaf,year) {
 	//alert(year + ": " + leaf);
 	//debugger;
-	
+	console.log("year: " + year);
 	
 	for (l in leaf) {
 		if(leaf[l].State=='US-TOTAL') {
@@ -144,9 +160,32 @@ function update_year(leaf,year) {
 		}
 		
 	}
-	
+
+
 	var title = year;
-	
+	/*
+	Coal
+	GDP
+	Geothermal
+	Hydroelectric Conventional
+	Natural Gas
+	Nuclear
+	Other
+	Other Biomass
+	Other Gases
+	Petroleum
+	Population
+	Pumped Storage
+	Solar Thermal and Photovoltaic
+	Total
+	Wind
+	Wood and Wood Derived Fuels
+
+	*/
+	//var numerator = "Coal";
+	//var denominator = "GDP";
+	var ref_factor = us_total[numerator]/us_total[denominator];
+	document.getElementById('name').innerHTML=year + " - ref: " + ref_factor;
 	//g.selectAll("path").data(leaf,function(d) { return d.State; }).enter().append("path")
 
 	
@@ -154,10 +193,10 @@ function update_year(leaf,year) {
 		//debugger;
 		var stateYearData = leaf[state]
 		var stateName = stateYearData["State"];
-		debugger;
+		//debugger;
 		g.select("#" + stateName).datum(stateYearData);
-		//update_state(year,stateName,stateYearData)
-		debugger;
+		update_state(stateName,numerator,denominator,ref_factor);
+		//debugger;
 		
 	}
 
@@ -170,16 +209,40 @@ function update_year(leaf,year) {
 	//debugger;
 //}
 
-function update_state(year,state,data) {
+function update_state(state,numerator,denominator,ref_factor) {
 	
 	//if(year=="2003"){
 //		alert(year + ", " + state + ", " + data.GDP / data.Population)
 //	}
 	//g.selectAll("#" + state).data(data).enter().append("#" + state);
-	g.select("#" + state).style("fill", function(d){ if((data.GDP/data.Population)>0.033) return "green"; else return "red";  })
+	g.select("#" + state).style("fill", function(d){  if((+d[numerator]/+d[denominator])<ref_factor) return "green"; else return "red";  })
 	
-	document.getElementById('name').innerHTML=year + " - " + state;
-   // debugger;	  
+	
+    //debugger;	  
+
+}
+
+function startTimerLoop() {
+  d3.csv("./annual_generation_state_clean3.csv", function(d) {
+	//debugger;
+	return d;
+  }, plot_points);
+  	var i=0;
+	var interval = 1500;
+	console.log("Starting timer function.");
+	var upd = function() {
+		console.log("loop. " + i);
+		if(i>=24) i=0;
+		//debugger;
+		
+		update_year(by_year[i].values,by_year[i].key);
+		i++;
+	}
+
+	console.log("Starting timer.");
+	//d3.timer(upd);
+	//var tc = function(d) {d3.timer(tc,interval); console.log(d);}
+	d3.interval(upd,interval);
 
 }
 
