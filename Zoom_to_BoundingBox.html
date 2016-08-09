@@ -36,76 +36,85 @@
   id_code_map = {};
   us_total = {};
   by_year = {};
+  var interval = 1500;
+  var animate = true;
   var numerator = "Total";
   var denominator = "Population";
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
-
+	  for (var i = 0; i < names.length; i++) {
+		name_id_map[names[i].name] = names[i].id;
+		id_name_map[names[i].id] = names[i].name;
+		
+		code_id_map[names[i].code] = names[i].id;
+		id_code_map[names[i].id] = names[i].code;
+	  }
+	});
   
-  for (var i = 0; i < names.length; i++) {
-    name_id_map[names[i].name] = names[i].id;
-    id_name_map[names[i].id] = names[i].name;
-	
-	code_id_map[names[i].code] = names[i].id;
-    id_code_map[names[i].id] = names[i].code;
-  }
-  
-});
-  
-var width = 1400,
-    height = 750,
-    active = d3.select(null);
+	var width = 1400,
+		height = 750,
+		active = d3.select(null);
 
-var projection = d3.geo.albersUsa()
-    .scale(1000)
-    .translate([width / 2, height / 2]);
+	var projection = d3.geo.albersUsa()
+		.scale(1000)
+		.translate([width / 2, height / 2]);
 
-var path = d3.geo.path()
-    .projection(projection);
-var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div")
-var control_table = controls.append("table").attr("class","control_table").attr("id","control_table");
-var title_row = control_table.append("tr")
-	title_row.append("td").text("Numerator")
-	title_row.append("td").text("Denominator")
-	
+	var path = d3.geo.path()
+		.projection(projection);
+	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div")
+	var control_table = controls.append("table").attr("class","control_table").attr("id","control_table");
+	var title_row = control_table.append("tr")
+		title_row.append("td").text("Numerator")
+		title_row.append("td").text("Denominator")
+		
 
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-	
-var num_options = [
-	"Coal",
-	"GDP",
-	"Geothermal",
-	"Hydroelectric Conventional",
-	"Natural Gas",
-	"Nuclear",
-	"Other",
-	"Other Biomass",
-	"Other Gases",
-	"Petroleum",
-	"Population",
-	"Pumped Storage",
-	"Solar Thermal and Photovoltaic",
-	"Total",
-	"Wind",
-	"Wood and Wood Derived Fuels"]
+	var svg = d3.select("body").append("svg")
+		.attr("width", width)
+		.attr("height", height);
+		
+	var num_options = [
+		"Coal",
+		"GDP",
+		"Geothermal",
+		"Hydroelectric Conventional",
+		"Natural Gas",
+		"Nuclear",
+		"Other",
+		"Other Gases",
+		"Petroleum",
+		"Population",
+		"Pumped Storage",
+		"Solar Thermal and Photovoltaic",
+		"Total",
+		"Wind",
+		'Wood Based Fuels and Biomass',
+		'Fossil Fuels Total',
+		'Clean Renewables Total'
+		]
 
-var den_options = [
-	"GDP",
-	"Population"
-	]
-	
-	var updateNumerator = function() {var sel = document.getElementById('num_sel'); console.log("updateNumerator: " + sel.options[sel.selectedIndex].value); numerator = sel.options[sel.selectedIndex].value; };
-	var updateDenominator = function() {var sel = document.getElementById('den_sel'); console.log("updateDenominator" + sel.options[sel.selectedIndex].value); denominator = sel.options[sel.selectedIndex].value; };
-	
-	var control_row = control_table.append("tr")
+	var den_options = [
+		"GDP",
+		"Population"
+		]
+		
+	var updateNumerator = function() {var sel = document.getElementById('num_sel');  numerator = sel.options[sel.selectedIndex].value; };
+	var updateDenominator = function() {var sel = document.getElementById('den_sel'); denominator = sel.options[sel.selectedIndex].value; };
+	var updateSpeed = function() {
+		var sel = document.getElementById('speed_sel'); 
+		
+		if(sel.options[sel.selectedIndex].value=="Low") interval = 300; 
+		if(sel.options[sel.selectedIndex].value=="Med") interval = 1000; 
+		if(sel.options[sel.selectedIndex].value=="High") interval = 2000; 
+		if(sel.options[sel.selectedIndex].value=="Stop") interval = 10000000;
+		};
+
+	var control_row = control_table.append("tr");
 	var selectNum = control_row.append("td").append("select");
 		selectNum.attr("id","num_sel");
 		selectNum.selectAll("option")
 			.data(num_options)
 			.enter()
-			.append("option")
+			.append("option").property('selected', function(d) { if(d=='Total') return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectNum.on("change",updateNumerator);
 		
@@ -114,148 +123,182 @@ var den_options = [
 		selectDen.selectAll("option")
 			.data(den_options)
 			.enter()
-			.append("option")
+			.append("option").property('selected', function(d) { if(d=='GDP') return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectDen.on("change",updateDenominator);
-
-svg.append("rect")
-    .attr("class", "background")
-    .attr("width", width)
-    .attr("height", height)
-    .on("click", reset);
-
-var g = svg.append("g")
-    .style("stroke-width", "1.5px");
-
-        
-d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
-  if (error) throw error;
-  
-  g.selectAll("path")
-      .data(topojson.feature(us, us.objects.states).features, function(d) { return id_code_map[d.id];})
-	  .enter()
-      .append("path")
-      .attr("d", path)
-	  .attr("class", "feature")
-	  .attr("id", function(d) { return id_code_map[d.id];})
-	  .on('click',clicked)
-	  .on('mouseover', function(d){
-			var code = id_code_map[d.id];
-			return document.getElementById('name').innerHTML=code;
-		});
-
- //debugger;
-  g.append("path")
-      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
-      .attr("class", "mesh")
-      .attr("d", path);
-
-});
-
-
-function plot_points(energy_data) {
-	//alert(d.length);
+		
+	var button_row = control_table.append("tr")
+//	var speedDiv = button_row.append("td").append("div");
+//	     speedDiv.attr("class","right-justify").text("Speed");
+	var startButton = button_row.append("button");
+		startButton.text("Start");
+		startButton.on("click", function() { animate = true;} );
+	var stopButton = button_row.append("button");
+		stopButton.text("Stop");
+		stopButton.on('click', function() {animate = false;});
+		
+		
+	//var selectSpeedTd = button_row.append("td")
 	
-	by_year = d3.nest()
-		.key(function(d) { return d.Year; })
-		.entries(energy_data);
-
-	var by_state = d3.nest()
-		.key(function(d) { return d.State; })
-		.entries(energy_data);
+/*		var selectSpeed = speedDiv.append("select").on("change",updateSpeed);
+		selectSpeed.attr("id","speed_sel");
+		selectSpeed.append("option").text("Med").property('selected','selected');
+		selectSpeed.append("option").text("Low");
+		selectSpeed.append("option").text("High");
+	*/	
 	
-	var by_state_id = d3.nest()
-		.key(function(d) { return code_id_map[d.State]; })
-		.entries(energy_data);
+	svg.append("rect")
+		.attr("class", "background")
+		.attr("width", width)
+		.attr("height", height)
+		.on("click", reset);
+
+	var g = svg.append("g")
+		.style("stroke-width", "1.5px");
+
+			
+	d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
+	  if (error) throw error;
+	  
+	g.selectAll("path")
+		  .data(topojson.feature(us, us.objects.states).features, function(d) { return id_code_map[d.id];})
+		  .enter()
+		  .append("path")
+		  .attr("d", path)
+		  .attr("class", "feature")
+		  .attr("id", function(d) { return id_code_map[d.id];})
+		  .on('click',clicked)
+		  .on('mouseover', function(d){
+				var code = id_code_map[d.id];
+				console.log(d);
+				return true;
+			});
+
+	 //debugger;
+	  g.append("path")
+		  .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+		  .attr("class", "mesh")
+		  .attr("d", path);
 	
-}
+	  console.log("Loading Data.")
+	  
+	  d3.csv("./annual_generation_state_clean3.csv", function(d) {
+		//Add aggregations here.
+		d['Clean Renewables Total'] = d['Hydroelectric Conventional'] + d['Solar Thermal and Photovoltaic'] + d['Geothermal'] + d['Wind'];
+		d['Fossil Fuels Total'] = d['Natural Gas'] + d['Coal'] + d['Petroleum']
+		d['Wood Based Fuels and Biomass'] = d['Other Biomass'] + d['Wood and Wood Derived Fuels']
+		
+		return d;
+	  }, plot_points);
 
-function update_year(leaf,year) {
-	//alert(year + ": " + leaf);
-	//debugger;
-	console.log("year: " + year);
-	
-	for (l in leaf) {
-		if(leaf[l].State=='US-TOTAL') {
-			us_total = leaf[l]
-		}
-	}
+	});
 
-	var title = year;
 
-	var ref_factor = us_total[numerator]/us_total[denominator];
-	document.getElementById('name').innerHTML=year + " - ref: " + ref_factor;
-	
-	for (state in leaf) {
+	function plot_points(energy_data) {
+		//alert(d.length);
+		
+		by_year = d3.nest()
+			.key(function(d) { return d.Year; })
+			.entries(energy_data);
 
-		var stateYearData = leaf[state]
-		var stateName = stateYearData["State"];
-
-		g.select("#" + stateName).datum(stateYearData);
-		update_state(stateName,numerator,denominator,ref_factor);
+		var by_state = d3.nest()
+			.key(function(d) { return d.State; })
+			.entries(energy_data);
+				debugger;
 		
 	}
-	
-}
 
-function update_state(state,numerator,denominator,ref_factor) {
+	function update_year(leaf,year) {
+		//debugger;
+		console.log("year: " + year);
+		
+		for (l in leaf) {
+			if(leaf[l].State=='US-TOTAL') {
+				us_total = leaf[l]
+			}
+		}
 
-	g.select("#" + state).style("fill", function(d){  if((+d[numerator]/+d[denominator])<ref_factor) return "green"; else return "red";  })
+		var title = year;
+		
+		var ratio_extent = d3.extent(leaf, function(d) { return (d[numerator]/d[denominator]) });
+		
 
-}
+		var ref_factor = us_total[numerator]/us_total[denominator];
+		document.getElementById('name').innerHTML= " Year: " + year + " - US " + numerator + " / " + denominator + " = " + ref_factor;
+		
+		for (state in leaf) {
 
-function startTimerLoop() {
-  d3.csv("./annual_generation_state_clean3.csv", function(d) {
-	//Add aggregations here.
-	
-	return d;
-  }, plot_points);
-  	var i=0;
-	var interval = 1500;
-	console.log("Starting timer function.");
-	var upd = function() {
-		if(i>=by_year.length) i=0;
-		update_year(by_year[i].values,by_year[i].key);
-		i++;
+			var stateYearData = leaf[state]
+			var stateName = stateYearData["State"];
+
+			g.select("#" + stateName).datum(stateYearData);
+			update_state(stateName,numerator,denominator,ref_factor,ratio_extent);
+			
+		}
+		
 	}
 
-	console.log("Starting timer.");
-	d3.interval(upd,interval);
+	
+	function update_state(state,numerator,denominator,ref_factor,extent) {
+		
+		var ramp=d3.scale.linear().domain(extent).range(["yellow","blue"])
+		
+		g.select("#" + state).style("fill", function(d){  return ramp(d[numerator]/d[denominator]);  })
 
-}
+	}
 
-function clicked(d) {
+	function startTimerLoop() {
 
-  if (active.node() === this) return reset();
-  active.classed("active", false);
-  active = d3.select(this).classed("active", true);
-  
- 
-  var bounds = path.bounds(d),
-      dx = bounds[1][0] - bounds[0][0],
-      dy = bounds[1][1] - bounds[0][1],
-      x = (bounds[0][0] + bounds[1][0]) / 2,
-      y = (bounds[0][1] + bounds[1][1]) / 2,
-      scale = .9 / Math.max(dx / width, dy / height);
-  
-  translate = [width / 2 - scale * x, height / 2 - scale * y];
-      //alert("Dx: " + dx + " Dy: " + dy + " x: " + x + " y: " + y);
+		
+		updateNumerator();
+		updateDenominator();
+		var i=0;
 
-  g.transition()
-      .duration(750)
-      .style("stroke-width", 1.5 / scale + "px")
-      .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-}
+		console.log("Starting timer function.");
+		var upd = function() {
+			if(animate==true) {
+				if(i>=by_year.length) i=0;
+				update_year(by_year[i].values,by_year[i].key);
+				i++;
+			}
+		}
 
-function reset() {
-  active.classed("active", false);
-  active = d3.select(null);
+		console.log("Starting timer.");
+		d3.interval(upd,interval);
+	}
 
-  g.transition()
-      .duration(750)
-      .style("stroke-width", "1.5px")
-      .attr("transform", "");
-}
+	function clicked(d) {
+
+	  if (active.node() === this) return reset();
+	  active.classed("active", false);
+	  active = d3.select(this).classed("active", true);
+	  
+	 
+	  var bounds = path.bounds(d),
+		  dx = bounds[1][0] - bounds[0][0],
+		  dy = bounds[1][1] - bounds[0][1],
+		  x = (bounds[0][0] + bounds[1][0]) / 2,
+		  y = (bounds[0][1] + bounds[1][1]) / 2,
+		  scale = .9 / Math.max(dx / width, dy / height);
+	  
+	  translate = [width / 2 - scale * x, height / 2 - scale * y];
+		  //alert("Dx: " + dx + " Dy: " + dy + " x: " + x + " y: " + y);
+
+	  g.transition()
+		  .duration(750)
+		  .style("stroke-width", 1.5 / scale + "px")
+		  .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+	}
+
+	function reset() {
+	  active.classed("active", false);
+	  active = d3.select(null);
+
+	  g.transition()
+		  .duration(750)
+		  .style("stroke-width", "1.5px")
+		  .attr("transform", "");
+	}
 
 </script>
 </body>
