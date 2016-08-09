@@ -62,24 +62,60 @@ var projection = d3.geo.albersUsa()
 
 var path = d3.geo.path()
     .projection(projection);
+var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div")
+var control_table = controls.append("table").attr("class","control_table").attr("id","control_table");
+var title_row = control_table.append("tr")
+	title_row.append("td").text("Numerator")
+	title_row.append("td").text("Denominator")
+	
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 	
-	var updateNumerator = function() {console.log("updateNumerator"); numerator = d3.select("#num_sel").value; };
-	var updateDenominator = function() {console.log("updateDenominator"); denominator = d3.select("#den_sel").value; };
+var num_options = [
+	"Coal",
+	"GDP",
+	"Geothermal",
+	"Hydroelectric Conventional",
+	"Natural Gas",
+	"Nuclear",
+	"Other",
+	"Other Biomass",
+	"Other Gases",
+	"Petroleum",
+	"Population",
+	"Pumped Storage",
+	"Solar Thermal and Photovoltaic",
+	"Total",
+	"Wind",
+	"Wood and Wood Derived Fuels"]
+
+var den_options = [
+	"GDP",
+	"Population"
+	]
 	
-	var selectNum = d3.select("body").append("select");
+	var updateNumerator = function() {var sel = document.getElementById('num_sel'); console.log("updateNumerator: " + sel.options[sel.selectedIndex].value); numerator = sel.options[sel.selectedIndex].value; };
+	var updateDenominator = function() {var sel = document.getElementById('den_sel'); console.log("updateDenominator" + sel.options[sel.selectedIndex].value); denominator = sel.options[sel.selectedIndex].value; };
+	
+	var control_row = control_table.append("tr")
+	var selectNum = control_row.append("td").append("select");
 		selectNum.attr("id","num_sel");
-		selectNum.append("option","Coal").text("Coal");
-		selectNum.append("option","Petroleum").text("Petroleum");
+		selectNum.selectAll("option")
+			.data(num_options)
+			.enter()
+			.append("option")
+			.text(function(d) { return d; });
 		selectNum.on("change",updateNumerator);
 		
-	var selectDen = d3.select("body").append("select");
+	var selectDen = control_row.append("td").append("select");
 		selectDen.attr("id","den_sel");
-		selectDen.append("option","GDP").text("GDP");
-		selectDen.append("option","Population").text("Population");
+		selectDen.selectAll("option")
+			.data(den_options)
+			.enter()
+			.append("option")
+			.text(function(d) { return d; });
 		selectDen.on("change",updateDenominator);
 
 svg.append("rect")
