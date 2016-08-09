@@ -149,11 +149,6 @@ d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(e
       .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
       .attr("class", "mesh")
       .attr("d", path);
-      
-
-	  
-
-
 
 });
 
@@ -172,16 +167,6 @@ function plot_points(energy_data) {
 	var by_state_id = d3.nest()
 		.key(function(d) { return code_id_map[d.State]; })
 		.entries(energy_data);
-//debugger;		
-//	for(year in by_year) {
-		//alert(year + ": " + by_year[year].key);
-//		update_year(by_year[year].values,by_year[year].key);
-
-		
-//	}
-//	debugger;
-
-
 	
 }
 
@@ -194,96 +179,50 @@ function update_year(leaf,year) {
 		if(leaf[l].State=='US-TOTAL') {
 			us_total = leaf[l]
 		}
-		
 	}
-
 
 	var title = year;
-	/*
-	Coal
-	GDP
-	Geothermal
-	Hydroelectric Conventional
-	Natural Gas
-	Nuclear
-	Other
-	Other Biomass
-	Other Gases
-	Petroleum
-	Population
-	Pumped Storage
-	Solar Thermal and Photovoltaic
-	Total
-	Wind
-	Wood and Wood Derived Fuels
 
-	*/
-	//var numerator = "Coal";
-	//var denominator = "GDP";
 	var ref_factor = us_total[numerator]/us_total[denominator];
 	document.getElementById('name').innerHTML=year + " - ref: " + ref_factor;
-	//g.selectAll("path").data(leaf,function(d) { return d.State; }).enter().append("path")
-
 	
 	for (state in leaf) {
-		//debugger;
+
 		var stateYearData = leaf[state]
 		var stateName = stateYearData["State"];
-		//debugger;
+
 		g.select("#" + stateName).datum(stateYearData);
 		update_state(stateName,numerator,denominator,ref_factor);
-		//debugger;
 		
 	}
-
-
-	   
 	
 }
-//function state_data(d) {
-	//alert(d);
-	//debugger;
-//}
 
 function update_state(state,numerator,denominator,ref_factor) {
-	
-	//if(year=="2003"){
-//		alert(year + ", " + state + ", " + data.GDP / data.Population)
-//	}
-	//g.selectAll("#" + state).data(data).enter().append("#" + state);
+
 	g.select("#" + state).style("fill", function(d){  if((+d[numerator]/+d[denominator])<ref_factor) return "green"; else return "red";  })
-	
-	
-    //debugger;	  
 
 }
 
 function startTimerLoop() {
   d3.csv("./annual_generation_state_clean3.csv", function(d) {
-	//debugger;
+	//Add aggregations here.
+	
 	return d;
   }, plot_points);
   	var i=0;
 	var interval = 1500;
 	console.log("Starting timer function.");
 	var upd = function() {
-		console.log("loop. " + i);
-		if(i>=24) i=0;
-		//debugger;
-		
+		if(i>=by_year.length) i=0;
 		update_year(by_year[i].values,by_year[i].key);
 		i++;
 	}
 
 	console.log("Starting timer.");
-	//d3.timer(upd);
-	//var tc = function(d) {d3.timer(tc,interval); console.log(d);}
 	d3.interval(upd,interval);
 
 }
-
-
-      
 
 function clicked(d) {
 
@@ -317,8 +256,6 @@ function reset() {
       .style("stroke-width", "1.5px")
       .attr("transform", "");
 }
-
-
 
 </script>
 </body>
