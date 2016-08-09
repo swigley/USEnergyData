@@ -28,7 +28,8 @@
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
-<div id="info"><h1 id="name"></h1></div>
+<div id="info"><h1 id="name"></h1><h2 id="title"></h2></div>
+
 <script>
   name_id_map = {};
   id_name_map = {};
@@ -41,6 +42,9 @@
   var animate = true;
   var numerator = "Total";
   var denominator = "Population";
+  var allTime = true;
+  var minYear = 1990
+  var maxYear = 2014
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 	  for (var i = 0; i < names.length; i++) {
@@ -86,7 +90,7 @@
 		"Population",
 		"Pumped Storage",
 		"Solar Thermal and Photovoltaic",
-		"Total",
+		"Total Energy",
 		"Wind",
 		'Wood Based Fuels and Biomass',
 		'Fossil Fuels Total',
@@ -100,6 +104,15 @@
 		
 	var updateNumerator = function() {var sel = document.getElementById('num_sel');  numerator = sel.options[sel.selectedIndex].value; };
 	var updateDenominator = function() {var sel = document.getElementById('den_sel'); denominator = sel.options[sel.selectedIndex].value; };
+	var updateRefBasis = function() {
+					var allTimeBasis = true;
+					var sel = document.getElementById('basis_sel'); 
+					if(sel.options[sel.selectedIndex].value=="All Time") allTimeBasis = true; 
+					else allTimeBasis = false;
+					console.log("AllTimeBasis: " + allTimeBasis);
+					allTime =allTimeBasis;
+					return allTimeBasis; 
+				}
 	var updateSpeed = function() {
 		var sel = document.getElementById('speed_sel'); 
 		
@@ -115,7 +128,7 @@
 		selectNum.selectAll("option")
 			.data(num_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Total') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d=='Total Energy') return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectNum.on("change",updateNumerator);
 		
@@ -128,15 +141,27 @@
 			.text(function(d) { return d; });
 		selectDen.on("change",updateDenominator);
 		
-	var button_row = control_table.append("tr")
+	var button_row = control_table.append("tr");
+	var buttons_col = button_row.append("td");
+	var buttons_div = buttons_col.append("div").style("float","left");
 //	var speedDiv = button_row.append("td").append("div");
 //	     speedDiv.attr("class","right-justify").text("Speed");
-	var startButton = button_row.append("button");
+	var startButton = buttons_col.append("button");
 		startButton.text("Start");
 		startButton.on("click", function() { animate = true;} );
-	var stopButton = button_row.append("button");
+	var stopButton = buttons_col.append("button");
 		stopButton.text("Stop");
 		stopButton.on('click', function() {animate = false;});
+	var wordzDiv = buttons_col.append("div").style("float","right");
+		wordzDiv.text("Reference Basis: ")
+	
+	var menuCol = button_row.append("td")
+	var basisSelect = menuCol.append("select")
+		basisSelect.attr("id","basis_sel");
+		basisSelect.append("option").text("Same Year");
+		basisSelect.append("option").property('selected','selected').text("All Time");
+		basisSelect.on('click', updateRefBasis);
+		
 		
 		
 	//var selectSpeedTd = button_row.append("td")
@@ -188,6 +213,7 @@
 		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
 		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
+		d['Total Energy'] = d['Total'];
 		
 		return d;
 	  }, plot_points);
@@ -217,7 +243,8 @@
 				debugger;
 		var usAvgPop = getAllTimeUSAvg('Population');
 		var usAvgCoal = getAllTimeUSAvg('Coal');
-
+		[minYear,maxYear] = d3.extent(by_year, function(d) { return +d["key"]} );
+	
 		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
 		startTimerLoop();
 	}
@@ -235,10 +262,18 @@
 		var title = year;
 		
 		var ratio_extent = d3.extent(leaf, function(d) { return (+d[numerator]/+d[denominator]) });
-		
 
+		
 		var ref_factor = +us_total[numerator]/+us_total[denominator];
-		document.getElementById('name').innerHTML= " Year: " + year + " - US " + numerator + " / " + denominator + " = " + ref_factor;
+		var titleStr = year + " - US "
+		if(allTime==true){
+			
+			
+			ref_factor = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			titleStr = minYear + " - " + maxYear + " US Avg "
+		}
+		document.getElementById('name').innerHTML=year;
+		document.getElementById('title').innerHTML= titleStr + numerator + " / " + denominator + " = " + ref_factor;
 		
 		for (state in leaf) {
 
@@ -255,8 +290,8 @@
 	
 	function update_state(state,numerator,denominator,ref_factor,extent) {
 		
+		//Scale the color based on relative ratio value to reference factor.
 		var ramp=d3.scale.linear().domain(extent).range(["yellow","blue"])
-		
 		g.select("#" + state).style("fill", function(d){  return ramp(+d[numerator]/+d[denominator]);  })
 
 	}
