@@ -24,7 +24,7 @@
 }
 
 </style>
-<body onload="startTimerLoop()">
+<body onload="">
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
@@ -36,6 +36,7 @@
   id_code_map = {};
   us_total = {};
   by_year = {};
+  by_state = {};
   var interval = 1500;
   var animate = true;
   var numerator = "Total";
@@ -184,15 +185,24 @@
 	  
 	  d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
-		d['Clean Renewables Total'] = d['Hydroelectric Conventional'] + d['Solar Thermal and Photovoltaic'] + d['Geothermal'] + d['Wind'];
-		d['Fossil Fuels Total'] = d['Natural Gas'] + d['Coal'] + d['Petroleum']
-		d['Wood Based Fuels and Biomass'] = d['Other Biomass'] + d['Wood and Wood Derived Fuels']
+		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
+		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
+		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
 		
 		return d;
 	  }, plot_points);
 
 	});
 
+	function getAllTimeUSAvg(valueName) {
+		var usData;
+		var usSum=0;
+		for (state in by_state) if(by_state[state].key.toUpperCase()=='US-TOTAL') usData = by_state[state];
+		for (year in usData.values) {
+			usSum += (+usData.values[year][valueName]);
+			}
+		return usSum/usData.values.length;
+	}
 
 	function plot_points(energy_data) {
 		//alert(d.length);
@@ -201,11 +211,15 @@
 			.key(function(d) { return d.Year; })
 			.entries(energy_data);
 
-		var by_state = d3.nest()
+		by_state = d3.nest()
 			.key(function(d) { return d.State; })
 			.entries(energy_data);
 				debugger;
-		
+		var usAvgPop = getAllTimeUSAvg('Population');
+		var usAvgCoal = getAllTimeUSAvg('Coal');
+
+		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
+		startTimerLoop();
 	}
 
 	function update_year(leaf,year) {
@@ -213,17 +227,17 @@
 		console.log("year: " + year);
 		
 		for (l in leaf) {
-			if(leaf[l].State=='US-TOTAL') {
+			if(leaf[l].State.toUpperCase()=='US-TOTAL') {
 				us_total = leaf[l]
 			}
 		}
 
 		var title = year;
 		
-		var ratio_extent = d3.extent(leaf, function(d) { return (d[numerator]/d[denominator]) });
+		var ratio_extent = d3.extent(leaf, function(d) { return (+d[numerator]/+d[denominator]) });
 		
 
-		var ref_factor = us_total[numerator]/us_total[denominator];
+		var ref_factor = +us_total[numerator]/+us_total[denominator];
 		document.getElementById('name').innerHTML= " Year: " + year + " - US " + numerator + " / " + denominator + " = " + ref_factor;
 		
 		for (state in leaf) {
@@ -243,7 +257,7 @@
 		
 		var ramp=d3.scale.linear().domain(extent).range(["yellow","blue"])
 		
-		g.select("#" + state).style("fill", function(d){  return ramp(d[numerator]/d[denominator]);  })
+		g.select("#" + state).style("fill", function(d){  return ramp(+d[numerator]/+d[denominator]);  })
 
 	}
 
@@ -254,6 +268,7 @@
 		updateDenominator();
 		var i=0;
 
+		debugger;
 		console.log("Starting timer function.");
 		var upd = function() {
 			if(animate==true) {
@@ -303,3 +318,4 @@
 </script>
 </body>
 </html>
+
