@@ -23,12 +23,26 @@
   stroke-linejoin: round;
 }
 
+div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: 140px;					
+    height: 85px;					
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+
 </style>
 <body onload="">
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
-<div id="info"><h1 id="name"></h1><h2 id="title"></h2></div>
+<div id="info"><h1 id="name"></h1><h3 id="title"></h3></div>
 
 <script>
   name_id_map = {};
@@ -45,6 +59,9 @@
   var allTime = true;
   var minYear = 1990
   var maxYear = 2014
+  var allTimeRef = 0;
+  var lowColor = "Orange";
+  var highColor = "SteelBlue";
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 	  for (var i = 0; i < names.length; i++) {
@@ -71,6 +88,7 @@
 	var title_row = control_table.append("tr")
 		title_row.append("td").text("Numerator")
 		title_row.append("td").text("Denominator")
+		title_row.append("td").text("Colors")
 		
 
 	var svg = d3.select("body").append("svg")
@@ -102,24 +120,46 @@
 		"Population"
 		]
 		
-	var updateNumerator = function() {var sel = document.getElementById('num_sel');  numerator = sel.options[sel.selectedIndex].value; };
-	var updateDenominator = function() {var sel = document.getElementById('den_sel'); denominator = sel.options[sel.selectedIndex].value; };
+	var color_options = [
+	"Orange",
+	"Blue",
+	"Red",
+	"SteelBlue",
+	"Yellow",
+	"Green",
+	"Magenta",
+	"Cyan"
+	]
+		
+	var updateNumerator = function() {
+			var sel = document.getElementById('num_sel');  
+			numerator = sel.options[sel.selectedIndex].value; 
+			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+		};
+	var updateDenominator = function() {
+			var sel = document.getElementById('den_sel'); 
+			denominator = sel.options[sel.selectedIndex].value; 
+			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+		};
 	var updateRefBasis = function() {
 					var allTimeBasis = true;
 					var sel = document.getElementById('basis_sel'); 
-					if(sel.options[sel.selectedIndex].value=="All Time") allTimeBasis = true; 
-					else allTimeBasis = false;
+					if(sel.options[sel.selectedIndex].value=="All Time") {
+						allTimeBasis = true; 
+						allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+					} else allTimeBasis = false;
 					console.log("AllTimeBasis: " + allTimeBasis);
 					allTime =allTimeBasis;
 					return allTimeBasis; 
 				}
-	var updateSpeed = function() {
-		var sel = document.getElementById('speed_sel'); 
+	var updateLowColor = function() {
+		var sel = document.getElementById('lowColor_sel'); 
+		lowColor = sel.options[sel.selectedIndex].value
+		};
 		
-		if(sel.options[sel.selectedIndex].value=="Low") interval = 300; 
-		if(sel.options[sel.selectedIndex].value=="Med") interval = 1000; 
-		if(sel.options[sel.selectedIndex].value=="High") interval = 2000; 
-		if(sel.options[sel.selectedIndex].value=="Stop") interval = 10000000;
+	var updateHighColor = function() {
+		var sel = document.getElementById('highColor_sel'); 
+		highColor = sel.options[sel.selectedIndex].value
 		};
 
 	var control_row = control_table.append("tr");
@@ -148,6 +188,7 @@
 //	     speedDiv.attr("class","right-justify").text("Speed");
 	var startButton = buttons_col.append("button");
 		startButton.text("Start");
+		startButton.on("mouseover", function(d) {console.log("mouseover start. ")});
 		startButton.on("click", function() { animate = true;} );
 	var stopButton = buttons_col.append("button");
 		stopButton.text("Stop");
@@ -162,16 +203,33 @@
 		basisSelect.append("option").property('selected','selected').text("All Time");
 		basisSelect.on('click', updateRefBasis);
 		
+	var tooltip = d3.select("body").append("div")	
+    .attr("class", "tooltip")				
+    .style("opacity", 0);
+		
+	var selectLowColorTd = control_row.append("td")
+	var selectLowColor = selectLowColorTd.append("select")
+		selectLowColor.on("change",updateLowColor);
+		selectLowColor.attr("id","lowColor_sel");
+		selectLowColor.selectAll("option")
+			.data(color_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d=='Red') return 'selected'; else return '' })
+			.text(function(d) { return d; });
 		
 		
-	//var selectSpeedTd = button_row.append("td")
+		
+	var selectHighColorTd = button_row.append("td")
 	
-/*		var selectSpeed = speedDiv.append("select").on("change",updateSpeed);
-		selectSpeed.attr("id","speed_sel");
-		selectSpeed.append("option").text("Med").property('selected','selected');
-		selectSpeed.append("option").text("Low");
-		selectSpeed.append("option").text("High");
-	*/	
+		var selectHighColor = selectHighColorTd.append("select")
+		selectHighColor.on("change",updateHighColor);
+		selectHighColor.attr("id","highColor_sel");
+		selectHighColor.selectAll("option")
+			.data(color_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d=='Green') return 'selected'; else return '' })
+			.text(function(d) { return d; });
+		
 	
 	svg.append("rect")
 		.attr("class", "background")
@@ -186,19 +244,16 @@
 	d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
 	  if (error) throw error;
 	  
+
+	  
 	g.selectAll("path")
 		  .data(topojson.feature(us, us.objects.states).features, function(d) { return id_code_map[d.id];})
 		  .enter()
-		  .append("path")
-		  .attr("d", path)
-		  .attr("class", "feature")
-		  .attr("id", function(d) { return id_code_map[d.id];})
-		  .on('click',clicked)
-		  .on('mouseover', function(d){
-				var code = id_code_map[d.id];
-				console.log(d);
-				return true;
-			});
+		  .append('path')
+		  .attr('d', path)
+		  .attr('class', 'feature')
+		  .attr('id', function(d) { return id_code_map[d.id];})
+		  .on('click',clicked);
 
 	 //debugger;
 	  g.append("path")
@@ -240,10 +295,11 @@
 		by_state = d3.nest()
 			.key(function(d) { return d.State; })
 			.entries(energy_data);
-				debugger;
+			
 		var usAvgPop = getAllTimeUSAvg('Population');
 		var usAvgCoal = getAllTimeUSAvg('Coal');
 		[minYear,maxYear] = d3.extent(by_year, function(d) { return +d["key"]} );
+		
 	
 		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
 		startTimerLoop();
@@ -251,7 +307,7 @@
 
 	function update_year(leaf,year) {
 		//debugger;
-		console.log("year: " + year);
+		//console.log("year: " + year);
 		
 		for (l in leaf) {
 			if(leaf[l].State.toUpperCase()=='US-TOTAL') {
@@ -261,15 +317,16 @@
 
 		var title = year;
 		
-		var ratio_extent = d3.extent(leaf, function(d) { return (+d[numerator]/+d[denominator]) });
+		var ratio_extent = d3.extent(leaf, function(d) { 
+				return (+d[numerator]/+d[denominator]) 
+			});
 
-		
+		//Initialize values based on the assumption we're using a per-year ref_factor.
 		var ref_factor = +us_total[numerator]/+us_total[denominator];
 		var titleStr = year + " - US "
+		//Overwrite if allTime selection is selected.
 		if(allTime==true){
-			
-			
-			ref_factor = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			ref_factor = allTimeRef;
 			titleStr = minYear + " - " + maxYear + " US Avg "
 		}
 		document.getElementById('name').innerHTML=year;
@@ -279,10 +336,16 @@
 
 			var stateYearData = leaf[state]
 			var stateName = stateYearData["State"];
-
-			g.select("#" + stateName).datum(stateYearData);
-			update_state(stateName,numerator,denominator,ref_factor,ratio_extent);
 			
+			//Get existing state topo data, and append energy data, then replace.
+			//debugger;
+			if(stateName!="US-TOTAL") {
+				var stateData = g.select("#" + stateName).datum();
+				stateData.energyData = stateYearData;
+				//debugger;
+				g.select("#" + stateName).datum(stateData);
+				update_state(stateName,numerator,denominator,ref_factor,ratio_extent);
+			}
 		}
 		
 	}
@@ -291,24 +354,41 @@
 	function update_state(state,numerator,denominator,ref_factor,extent) {
 		
 		//Scale the color based on relative ratio value to reference factor.
-		var ramp=d3.scale.linear().domain(extent).range(["yellow","blue"])
-		g.select("#" + state).style("fill", function(d){  return ramp(+d[numerator]/+d[denominator]);  })
+		var ramp=d3.scale.linear().domain(extent).range([lowColor,highColor])
+		var state = g.select("#"+ state);
+		state.style("fill", function(d){  return ramp(+d.energyData[numerator]/+d.energyData[denominator]);  });
+		state.on("mouseover", function(d) {		
+            tooltip.transition()		
+                .duration(200)		
+                .style("opacity", .9);		
+            tooltip.html(d.energyData["Year"] + " " + d.energyData["State"] + " " + numerator + " / " + denominator + ": " + (+d.energyData[numerator]/+d.energyData[denominator]).toFixed(2) +  "<br/>")	
+                .style("left", (d3.event.pageX) + "px")		
+                .style("top", (d3.event.pageY - 28) + "px");	
+            })
+			.on("mouseout", function(d) {		
+            tooltip.transition()		
+                .duration(500)		
+                .style("opacity", 0);	
+        });
+
+		
 
 	}
 
-	function startTimerLoop() {
+	function startTimerLoop(allTimeRef) {
 
 		
 		updateNumerator();
 		updateDenominator();
 		var i=0;
 
-		debugger;
+		//debugger;
 		console.log("Starting timer function.");
 		var upd = function() {
 			if(animate==true) {
 				if(i>=by_year.length) i=0;
-				update_year(by_year[i].values,by_year[i].key);
+				//debugger;
+				update_year(by_year[i].values,by_year[i].key,allTimeRef);
 				i++;
 			}
 		}
@@ -318,7 +398,8 @@
 	}
 
 	function clicked(d) {
-
+		console.log("clicked: " + d);
+		//debugger;
 	  if (active.node() === this) return reset();
 	  active.classed("active", false);
 	  active = d3.select(this).classed("active", true);
@@ -332,8 +413,9 @@
 		  scale = .9 / Math.max(dx / width, dy / height);
 	  
 	  translate = [width / 2 - scale * x, height / 2 - scale * y];
-		  //alert("Dx: " + dx + " Dy: " + dy + " x: " + x + " y: " + y);
-
+		  console.log("Dx: " + dx + " Dy: " + dy + " x: " + x + " y: " + y + " scale: " + scale + " translate: " + translate + " bounds: " + bounds);
+		
+	debugger;
 	  g.transition()
 		  .duration(750)
 		  .style("stroke-width", 1.5 / scale + "px")
