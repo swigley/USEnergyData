@@ -153,6 +153,9 @@ div.stateChartBG {
 			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
 			if(active.node()!=null) {
 				var state = active.node().id;
+				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
+				myChart.axes[1].title = state + " vs US-TOTAL " + numerator + "/" + denominator;
+				//debugger;
 				myChart.data = updateChartData(state);
 				myChart.draw();
 				}
@@ -165,7 +168,8 @@ div.stateChartBG {
 			//debugger;
 			if(active.node()!=null) {
 				var state = active.node().id;
-
+				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
+				myChart.axes[1].title = state + " vs US-TOTAL " + numerator + "/" + denominator;
 				myChart.data = updateChartData(state);
 				myChart.draw();
 			}
@@ -472,15 +476,19 @@ div.stateChartBG {
 		.style("width", 640 + "px")
 		.style("height",480 + "px")
 		.style("opacity", .9);	
-		
-	stateChartBG.html(state + " vs US-TOTAL " + numerator + "/" + denominator)	
+	stateChartBG
 		.style("left",  (640/2) + "px")		
 		.style("top",  (480/2)+ "px");
+		
+	var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
+	
+	chartTitle.html(state + " vs US-TOTAL " + numerator + "/" + denominator);
+
 			
 			
 	tooltip.transition()
 		.duration(480)
-		.style("opacity",0)
+		.style("opacity",0);
 		
 	
 //	by_state.
