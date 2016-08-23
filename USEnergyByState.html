@@ -3,7 +3,7 @@
 <style>
 
 .background {
-  fill: none;
+  fill: pink;
   pointer-events: all;
 }
 
@@ -36,12 +36,26 @@ div.tooltip {
     pointer-events: none;			
 }
 
+div.stateChartBG {	
+    position: absolute;			
+    text-align: center;			
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: DarkSlateGray;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+
 </style>
 <body onload="">
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
+
+<script src="http://dimplejs.org/dist/dimple.v2.2.0.min.js"></script>
+  
 <div id="info"><h1 id="name"></h1><h3 id="title"></h3></div>
 
 <script>
@@ -62,6 +76,7 @@ div.tooltip {
   var allTimeRef = 0;
   var lowColor = "Orange";
   var highColor = "SteelBlue";
+  var myChart = null;
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 	  for (var i = 0; i < names.length; i++) {
@@ -133,14 +148,29 @@ div.tooltip {
 		
 	var updateNumerator = function() {
 			var sel = document.getElementById('num_sel');  
+			//var state = active.node().id;
 			numerator = sel.options[sel.selectedIndex].value; 
 			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			if(active.node()!=null) {
+				var state = active.node().id;
+				myChart.data = updateChartData(state);
+				myChart.draw();
+				}
 		};
 	var updateDenominator = function() {
 			var sel = document.getElementById('den_sel'); 
+			//var state = active.node().id;
 			denominator = sel.options[sel.selectedIndex].value; 
 			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			//debugger;
+			if(active.node()!=null) {
+				var state = active.node().id;
+
+				myChart.data = updateChartData(state);
+				myChart.draw();
+			}
 		};
+	
 	var updateRefBasis = function() {
 					var allTimeBasis = true;
 					var sel = document.getElementById('basis_sel'); 
@@ -204,8 +234,13 @@ div.tooltip {
 		basisSelect.on('click', updateRefBasis);
 		
 	var tooltip = d3.select("body").append("div")	
-    .attr("class", "tooltip")				
-    .style("opacity", 0);
+		.attr("class", "tooltip")				
+		.style("opacity", 0);
+	
+	var stateChartBG = d3.select("body").append("div")	
+		.attr("class", "stateChartBG")				
+		.style("opacity", 0);
+	stateChartBG.innerHTML = ""
 		
 	var selectLowColorTd = control_row.append("td")
 	var selectLowColor = selectLowColorTd.append("select")
@@ -239,7 +274,13 @@ div.tooltip {
 
 	var g = svg.append("g")
 		.style("stroke-width", "1.5px");
+		
 
+//	var chartBG = g.append("rect")
+//		.attr("class", "chartBG")
+//		.attr("width",160)
+//		.attr("height", 120)
+//		.style("opacity", 0.0);
 			
 	d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
 	  if (error) throw error;
@@ -263,6 +304,7 @@ div.tooltip {
 	
 	  console.log("Loading Data.")
 	  
+	  
 	  d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
 		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
@@ -270,8 +312,11 @@ div.tooltip {
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
 		d['Total Energy'] = d['Total'];
 		
+		
 		return d;
 	  }, plot_points);
+	  
+
 
 	});
 
@@ -404,7 +449,7 @@ div.tooltip {
 	  active.classed("active", false);
 	  active = d3.select(this).classed("active", true);
 	  
-	 
+	  var state = this.id
 	  var bounds = path.bounds(d),
 		  dx = bounds[1][0] - bounds[0][0],
 		  dy = bounds[1][1] - bounds[0][1],
@@ -415,11 +460,87 @@ div.tooltip {
 	  translate = [width / 2 - scale * x, height / 2 - scale * y];
 		  console.log("Dx: " + dx + " Dy: " + dy + " x: " + x + " y: " + y + " scale: " + scale + " translate: " + translate + " bounds: " + bounds);
 		
-	debugger;
-	  g.transition()
-		  .duration(750)
-		  .style("stroke-width", 1.5 / scale + "px")
-		  .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+	//debugger;
+	  g.transition() 
+		.duration(750)
+       .style("stroke-width", 1.5 / scale + "px")
+       .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+	  
+	
+	stateChartBG.transition()		
+		.duration(700)		
+		.style("width", 640 + "px")
+		.style("height",480 + "px")
+		.style("opacity", .9);	
+		
+	stateChartBG.html(state + " vs US-TOTAL " + numerator + "/" + denominator)	
+		.style("left",  (640/2) + "px")		
+		.style("top",  (480/2)+ "px");
+			
+			
+	tooltip.transition()
+		.duration(480)
+		.style("opacity",0)
+		
+	
+//	by_state.
+	drawChartstate(state);
+
+  	//debugger;
+	}
+	function updateChartData(stateCode) {
+		var focusData = dimple.filterData(by_state, "key",[stateCode,"US-TOTAL"]);
+		var chartData1 = focusData[0].values.concat(focusData[1].values);
+		
+		var  chartData2 = [];
+		
+		//debugger;
+		chartData1.forEach(function (d, i) {
+			var chartValName = d[numerator] + "/" + d[denominator];
+			var chartVal = +d[numerator]/+d[denominator];
+			chartData2.push({
+				"Year": d["Year"],
+				"State": d["State"],
+				"Val": chartVal
+			});
+		});
+		return chartData2;
+	}
+	
+	function drawChartstate(stateCode) {
+	
+	    var svg = dimple.newSvg(".stateChartBG", 590, 400);
+   //d3.tsv("/data/example_data.tsv", function (data) {
+      //data = dimple.filterData(data, "Owner", ["Aperture", "Black Mesa"])
+		var focusData = dimple.filterData(by_state, "key",[stateCode,"US-TOTAL"]);
+		var chartData1 = focusData[0].values.concat(focusData[1].values);
+		
+		var  chartData2 = [];
+		
+		//debugger;
+		chartData1.forEach(function (d, i) {
+			var chartValName = d[numerator] + "/" + d[denominator];
+			var chartVal = +d[numerator]/+d[denominator];
+			chartData2.push({
+				"Year": d["Year"],
+				"State": d["State"],
+				"Val": chartVal
+			});
+		});
+
+
+		myChart = new dimple.chart(svg, chartData2);
+	  
+		myChart.setBounds(60, 30, 505, 305);
+		var x = myChart.addCategoryAxis("x", "Year");
+		x.addOrderRule("Date");
+		var y = myChart.addMeasureAxis("y", "Val");
+		y.title = numerator + " / " + denominator;
+		myChart.addSeries("State", dimple.plot.line);
+		myChart.assignColor("US-TOTAL","SteelBlue")
+		myChart.assignColor(stateCode,"Coral")
+		myChart.addLegend(60, 10, 500, 20, "right");
+		myChart.draw();
 	}
 
 	function reset() {
@@ -430,6 +551,9 @@ div.tooltip {
 		  .duration(750)
 		  .style("stroke-width", "1.5px")
 		  .attr("transform", "");
+	
+	  stateChartBG.transition()
+		.duration(250).style("opacity",0);
 	}
 
 </script>
