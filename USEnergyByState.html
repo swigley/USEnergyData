@@ -3,9 +3,13 @@
 <style>
 
 .background {
-  fill: pink;
+  fill: DeepSkyBlue  ;
   pointer-events: all;
 }
+body {
+	background-color: DeepSkyBlue ;
+}
+
 
 .feature {
   fill: #ccc;
@@ -47,16 +51,33 @@ div.stateChartBG {
     pointer-events: none;			
 }
 
+h1#year {
+	font-family: 'Allerta Stencil';
+	color: red;
+	font-size: 48px;
+}
+h3#title {
+	font-family: Abel;
+	font-size: 24px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 500;
+	line-height: 26.4px;
+}
+
+
 </style>
 <body onload="">
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Allerta+Stencil" />
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Abel" />
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
-
 <script src="http://dimplejs.org/dist/dimple.v2.2.0.min.js"></script>
-  
-<div id="info"><h1 id="name"></h1><h3 id="title"></h3></div>
+
+
 
 <script>
   name_id_map = {};
@@ -70,12 +91,12 @@ div.stateChartBG {
   var animate = true;
   var numerator = "Total";
   var denominator = "Population";
-  var allTime = true;
+  var allTime = false;
   var minYear = 1990
   var maxYear = 2014
   var allTimeRef = 0;
-  var lowColor = "Orange";
-  var highColor = "SteelBlue";
+  var lowColor = "Red";
+  var highColor = "Green";
   var myChart = null;
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
@@ -98,14 +119,17 @@ div.stateChartBG {
 
 	var path = d3.geo.path()
 		.projection(projection);
-	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div")
-	var control_table = controls.append("table").attr("class","control_table").attr("id","control_table");
+	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div");
+	var info = controls.append("div").attr("id","info");
+	info.append("h1").attr("id","year");
+
+	var control_table = info.append("table").attr("class","control_table").attr("id","control_table").attr("style","float: left");
 	var title_row = control_table.append("tr")
 		title_row.append("td").text("Numerator")
 		title_row.append("td").text("Denominator")
 		title_row.append("td").text("Colors")
 		
-
+	info.append("h3").attr("id","title").attr("style","text-align: right");
 	var svg = d3.select("body").append("svg")
 		.attr("width", width)
 		.attr("height", height);
@@ -136,15 +160,15 @@ div.stateChartBG {
 		]
 		
 	var color_options = [
-	"Orange",
-	"Blue",
-	"Red",
-	"SteelBlue",
-	"Yellow",
-	"Green",
-	"Magenta",
-	"Cyan"
-	]
+		"Orange",
+		"Blue",
+		"Red",
+		"SteelBlue",
+		"Yellow",
+		"Green",
+		"Magenta",
+		"Cyan"
+		]
 		
 	var updateNumerator = function() {
 			var sel = document.getElementById('num_sel');  
@@ -154,7 +178,7 @@ div.stateChartBG {
 			if(active.node()!=null) {
 				var state = active.node().id;
 				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
-				myChart.axes[1].title = state + " vs US-TOTAL " + numerator + "/" + denominator;
+				myChart.axes[1].title = numerator + "/" + denominator;
 				//debugger;
 				myChart.data = updateChartData(state);
 				myChart.draw();
@@ -169,31 +193,32 @@ div.stateChartBG {
 			if(active.node()!=null) {
 				var state = active.node().id;
 				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
-				myChart.axes[1].title = state + " vs US-TOTAL " + numerator + "/" + denominator;
+				myChart.axes[1].title = numerator + "/" + denominator;
 				myChart.data = updateChartData(state);
 				myChart.draw();
 			}
 		};
 	
 	var updateRefBasis = function() {
-					var allTimeBasis = true;
-					var sel = document.getElementById('basis_sel'); 
-					if(sel.options[sel.selectedIndex].value=="All Time") {
-						allTimeBasis = true; 
-						allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
-					} else allTimeBasis = false;
-					console.log("AllTimeBasis: " + allTimeBasis);
-					allTime =allTimeBasis;
-					return allTimeBasis; 
-				}
+			var allTimeBasis = true;
+			var sel = document.getElementById('basis_sel'); 
+			if(sel.options[sel.selectedIndex].value=="All Time") {
+				allTimeBasis = true; 
+				allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			} else allTimeBasis = false;
+			console.log("AllTimeBasis: " + allTimeBasis);
+			allTime =allTimeBasis;
+			return allTimeBasis; 
+		}
+				
 	var updateLowColor = function() {
-		var sel = document.getElementById('lowColor_sel'); 
-		lowColor = sel.options[sel.selectedIndex].value
+			var sel = document.getElementById('lowColor_sel'); 
+			lowColor = sel.options[sel.selectedIndex].value;
 		};
 		
 	var updateHighColor = function() {
-		var sel = document.getElementById('highColor_sel'); 
-		highColor = sel.options[sel.selectedIndex].value
+			var sel = document.getElementById('highColor_sel'); 
+			highColor = sel.options[sel.selectedIndex].value;
 		};
 
 	var control_row = control_table.append("tr");
@@ -202,7 +227,7 @@ div.stateChartBG {
 		selectNum.selectAll("option")
 			.data(num_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Total Energy') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d=='Clean Renewables Total') return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectNum.on("change",updateNumerator);
 		
@@ -211,7 +236,7 @@ div.stateChartBG {
 		selectDen.selectAll("option")
 			.data(den_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='GDP') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d=='Population') return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectDen.on("change",updateDenominator);
 		
@@ -233,8 +258,8 @@ div.stateChartBG {
 	var menuCol = button_row.append("td")
 	var basisSelect = menuCol.append("select")
 		basisSelect.attr("id","basis_sel");
-		basisSelect.append("option").text("Same Year");
-		basisSelect.append("option").property('selected','selected').text("All Time");
+		basisSelect.append("option").text("All Time");
+		basisSelect.append("option").property('selected','selected').text("Same Year");
 		basisSelect.on('click', updateRefBasis);
 		
 	var tooltip = d3.select("body").append("div")	
@@ -244,7 +269,7 @@ div.stateChartBG {
 	var stateChartBG = d3.select("body").append("div")	
 		.attr("class", "stateChartBG")				
 		.style("opacity", 0);
-	stateChartBG.innerHTML = ""
+	stateChartBG.innerHTML = "";
 		
 	var selectLowColorTd = control_row.append("td")
 	var selectLowColor = selectLowColorTd.append("select")
@@ -253,12 +278,10 @@ div.stateChartBG {
 		selectLowColor.selectAll("option")
 			.data(color_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Red') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d==lowColor) return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		
-		
-		
-	var selectHighColorTd = button_row.append("td")
+	var selectHighColorTd = button_row.append("td");
 	
 		var selectHighColor = selectHighColorTd.append("select")
 		selectHighColor.on("change",updateHighColor);
@@ -266,7 +289,7 @@ div.stateChartBG {
 		selectHighColor.selectAll("option")
 			.data(color_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Green') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d==highColor) return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		
 	
@@ -288,9 +311,7 @@ div.stateChartBG {
 			
 	d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
 	  if (error) throw error;
-	  
-
-	  
+	
 	g.selectAll("path")
 		  .data(topojson.feature(us, us.objects.states).features, function(d) { return id_code_map[d.id];})
 		  .enter()
@@ -306,8 +327,7 @@ div.stateChartBG {
 		  .attr("class", "mesh")
 		  .attr("d", path);
 	
-	  console.log("Loading Data.")
-	  
+	  console.log("Loading Data.");	  
 	  
 	  d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
@@ -315,12 +335,9 @@ div.stateChartBG {
 		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
 		d['Total Energy'] = d['Total'];
-		
-		
+
 		return d;
 	  }, plot_points);
-	  
-
 
 	});
 
@@ -349,7 +366,6 @@ div.stateChartBG {
 		var usAvgCoal = getAllTimeUSAvg('Coal');
 		[minYear,maxYear] = d3.extent(by_year, function(d) { return +d["key"]} );
 		
-	
 		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
 		startTimerLoop();
 	}
@@ -378,7 +394,7 @@ div.stateChartBG {
 			ref_factor = allTimeRef;
 			titleStr = minYear + " - " + maxYear + " US Avg "
 		}
-		document.getElementById('name').innerHTML=year;
+		document.getElementById('year').innerHTML=year;
 		document.getElementById('title').innerHTML= titleStr + numerator + " / " + denominator + " = " + ref_factor;
 		
 		for (state in leaf) {
@@ -399,7 +415,6 @@ div.stateChartBG {
 		
 	}
 
-	
 	function update_state(state,numerator,denominator,ref_factor,extent) {
 		
 		//Scale the color based on relative ratio value to reference factor.
@@ -419,13 +434,9 @@ div.stateChartBG {
                 .duration(500)		
                 .style("opacity", 0);	
         });
-
-		
-
 	}
 
 	function startTimerLoop(allTimeRef) {
-
 		
 		updateNumerator();
 		updateDenominator();
@@ -483,13 +494,10 @@ div.stateChartBG {
 	var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
 	
 	chartTitle.html(state + " vs US-TOTAL " + numerator + "/" + denominator);
-
-			
 			
 	tooltip.transition()
 		.duration(480)
 		.style("opacity",0);
-		
 	
 //	by_state.
 	drawChartstate(state);
@@ -535,7 +543,6 @@ div.stateChartBG {
 				"Val": chartVal
 			});
 		});
-
 
 		myChart = new dimple.chart(svg, chartData2);
 	  
