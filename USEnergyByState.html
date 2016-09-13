@@ -52,7 +52,7 @@ div.stateChartBG {
 }
 
 h1#year {
-	font-family: 'Allerta Stencil';
+	font-family: 'Orbitron', sans-serif;
 	color: red;
 	font-size: 48px;
 }
@@ -70,6 +70,7 @@ h3#title {
 <body onload="">
 <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Allerta+Stencil" />
 <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Abel" />
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Orbitron">
 
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
@@ -80,6 +81,7 @@ h3#title {
 
 
 <script>
+	//initialize some global variables
   name_id_map = {};
   id_name_map = {};
   code_id_map = {};
@@ -98,6 +100,9 @@ h3#title {
   var lowColor = "Red";
   var highColor = "Green";
   var myChart = null;
+  
+  //load mapping from state names to state ID #'s from the geojson dataset to state codes and names.  
+  //Then create some dictionary objects for lookup.
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
   
 	  for (var i = 0; i < names.length; i++) {
@@ -109,16 +114,21 @@ h3#title {
 	  }
 	});
   
+	//set svg width and height
 	var width = 1400,
 		height = 750,
 		active = d3.select(null);
 
+	//set map projection
 	var projection = d3.geo.albersUsa()
 		.scale(1000)
 		.translate([width / 2, height / 2]);
 
+	//assign the projection to a path object
 	var path = d3.geo.path()
 		.projection(projection);
+	
+	//create a  container for controls and info.
 	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div");
 	var info = controls.append("div").attr("id","info");
 	info.append("h1").attr("id","year");
@@ -129,11 +139,15 @@ h3#title {
 		title_row.append("td").text("Denominator")
 		title_row.append("td").text("Colors")
 		
-	info.append("h3").attr("id","title").attr("style","text-align: right");
+	var title = info.append("h3").attr("id","title").attr("style","text-align: right");
+	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox");
+	
+	//create the svg container
 	var svg = d3.select("body").append("svg")
 		.attr("width", width)
 		.attr("height", height);
 		
+	//create static arrays for default control options
 	var num_options = [
 		"Coal",
 		"GDP",
@@ -170,6 +184,7 @@ h3#title {
 		"Cyan"
 		]
 		
+	//event handlers for pulldown menu change
 	var updateNumerator = function() {
 			var sel = document.getElementById('num_sel');  
 			//var state = active.node().id;
@@ -221,6 +236,7 @@ h3#title {
 			highColor = sel.options[sel.selectedIndex].value;
 		};
 
+	//Add controls
 	var control_row = control_table.append("tr");
 	var selectNum = control_row.append("td").append("select");
 		selectNum.attr("id","num_sel");
@@ -291,8 +307,8 @@ h3#title {
 			.enter()
 			.append("option").property('selected', function(d) { if(d==highColor) return 'selected'; else return '' })
 			.text(function(d) { return d; });
-		
-	
+
+	//Create SVG object
 	svg.append("rect")
 		.attr("class", "background")
 		.attr("width", width)
@@ -301,14 +317,15 @@ h3#title {
 
 	var g = svg.append("g")
 		.style("stroke-width", "1.5px");
-		
-
+/*
 //	var chartBG = g.append("rect")
 //		.attr("class", "chartBG")
 //		.attr("width",160)
 //		.attr("height", 120)
 //		.style("opacity", 0.0);
-			
+*/
+	
+	//load and draw geoJSON paths with event handlers for onClick of individual states.			
 	d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
 	  if (error) throw error;
 	
@@ -321,15 +338,17 @@ h3#title {
 		  .attr('id', function(d) { return id_code_map[d.id];})
 		  .on('click',clicked);
 
-	 //debugger;
 	  g.append("path")
 		  .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
 		  .attr("class", "mesh")
 		  .attr("d", path);
 	
 	  console.log("Loading Data.");	  
-	  
-	  d3.csv("./annual_generation_state_clean3.csv", function(d) {
+
+	});
+	
+	//load energy data and create some additional variables for each row.
+	 d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
 		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
 		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
@@ -339,8 +358,7 @@ h3#title {
 		return d;
 	  }, plot_points);
 
-	});
-
+	//Compute US averages for the full timespan in the data.
 	function getAllTimeUSAvg(valueName) {
 		var usData;
 		var usSum=0;
@@ -351,6 +369,7 @@ h3#title {
 		return usSum/usData.values.length;
 	}
 
+	//Create data summaries by state and by year then start the animation timer.
 	function plot_points(energy_data) {
 		//alert(d.length);
 		
@@ -362,14 +381,15 @@ h3#title {
 			.key(function(d) { return d.State; })
 			.entries(energy_data);
 			
-		var usAvgPop = getAllTimeUSAvg('Population');
-		var usAvgCoal = getAllTimeUSAvg('Coal');
+		//var usAvgPop = getAllTimeUSAvg('Population');
+		//var usAvgCoal = getAllTimeUSAvg('Coal');
 		[minYear,maxYear] = d3.extent(by_year, function(d) { return +d["key"]} );
 		
 		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
 		startTimerLoop();
 	}
 
+	//Function is called for each year after each timer interval to update the yearly data for the chart.
 	function update_year(leaf,year) {
 		//debugger;
 		//console.log("year: " + year);
@@ -385,7 +405,11 @@ h3#title {
 		var ratio_extent = d3.extent(leaf, function(d) { 
 				return (+d[numerator]/+d[denominator]) 
 			});
-
+			
+		var colorScale = d3.scale.quantize()
+			.domain(ratio_extent)
+			.range(d3.scale.linear().domain(ratio_extent).range([lowColor,highColor]));
+			
 		//Initialize values based on the assumption we're using a per-year ref_factor.
 		var ref_factor = +us_total[numerator]/+us_total[denominator];
 		var titleStr = year + " - US "
@@ -415,6 +439,7 @@ h3#title {
 		
 	}
 
+	//Function to update each state for a particular year.
 	function update_state(state,numerator,denominator,ref_factor,extent) {
 		
 		//Scale the color based on relative ratio value to reference factor.
@@ -436,6 +461,7 @@ h3#title {
         });
 	}
 
+	//update data from controls and start timer loop
 	function startTimerLoop(allTimeRef) {
 		
 		updateNumerator();
@@ -457,6 +483,7 @@ h3#title {
 		d3.interval(upd,interval);
 	}
 
+	//Event handler for when a state is clicked.
 	function clicked(d) {
 		console.log("clicked: " + d);
 		//debugger;
@@ -504,6 +531,8 @@ h3#title {
 
   	//debugger;
 	}
+	
+	//Function to update an individual state chart when controls are changed.
 	function updateChartData(stateCode) {
 		var focusData = dimple.filterData(by_state, "key",[stateCode,"US-TOTAL"]);
 		var chartData1 = focusData[0].values.concat(focusData[1].values);
@@ -523,8 +552,14 @@ h3#title {
 		return chartData2;
 	}
 	
+	//Function to draw a state specific dimple.js chart when a state is clicked.
 	function drawChartstate(stateCode) {
+		//alert(stateCode);
+		
+		stateChartBG.selectAll("*").remove();
 	
+		var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
+		chartTitle.html(stateCode + " vs US-TOTAL " + numerator + "/" + denominator);
 	    var svg = dimple.newSvg(".stateChartBG", 590, 400);
    //d3.tsv("/data/example_data.tsv", function (data) {
       //data = dimple.filterData(data, "Owner", ["Aperture", "Black Mesa"])
@@ -558,6 +593,7 @@ h3#title {
 		myChart.draw();
 	}
 
+	//Function to reset an active state when it's clicked again.
 	function reset() {
 	  active.classed("active", false);
 	  active = d3.select(null);
