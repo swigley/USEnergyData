@@ -3,13 +3,13 @@
 <style>
 
 .background {
-  fill: DeepSkyBlue  ;
+  fill: DeepSkyBlue;
   pointer-events: all;
 }
-body {
-	background-color: DeepSkyBlue ;
-}
 
+body {
+  background-color: DeepSkyBlue ;
+}
 
 .feature {
   fill: #ccc;
@@ -28,41 +28,58 @@ body {
 }
 
 div.tooltip {	
-    position: absolute;			
-    text-align: center;			
-    width: 140px;					
-    height: 85px;					
-    padding: 2px;				
-    font: 12px sans-serif;		
-    background: lightsteelblue;	
-    border: 0px;		
-    border-radius: 8px;			
-    pointer-events: none;			
+  position: absolute;			
+  text-align: center;			
+  width: 140px;					
+  height: 85px;					
+  padding: 2px;				
+  font: 12px sans-serif;		
+  background: lightsteelblue;	
+  border: 0px;		
+  border-radius: 8px;			
+  pointer-events: none;			
 }
 
 div.stateChartBG {	
-    position: absolute;			
-    text-align: center;			
-    padding: 2px;				
-    font: 12px sans-serif;		
-    background: DarkSlateGray;	
-    border: 0px;		
-    border-radius: 8px;			
-    pointer-events: none;			
+  position: absolute;			
+  text-align: center;			
+  padding: 2px;				
+  font: 12px sans-serif;		
+  background: DarkSlateGray;	
+  border: 0px;		
+  border-radius: 8px;			
+  pointer-events: none;			
 }
 
 h1#year {
-	font-family: 'Orbitron', sans-serif;
-	color: red;
-	font-size: 48px;
+  font-family: 'Orbitron', sans-serif;
+  color: red;
+  font-size: 48px;
 }
+
 h3#title {
-	font-family: Abel;
-	font-size: 24px;
-	font-style: normal;
-	font-variant: normal;
-	font-weight: 500;
-	line-height: 26.4px;
+  font-family: Abel;
+  font-size: 24px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 500;
+  line-height: 26.4px;
+}
+
+#legend {
+    padding: 1.5em 0 0 1.5em;
+}
+
+li.key {
+    border-width: 15px;
+    border-top-style: solid;
+    font-size: .75em;
+    width: 25%;
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-left: 1px;
+    margin-right: 1px;
+    display: inline;
 }
 
 
@@ -78,10 +95,8 @@ h3#title {
 <script src="https://d3js.org/d3-timer.v1.min.js"></script>
 <script src="http://dimplejs.org/dist/dimple.v2.2.0.min.js"></script>
 
-
-
 <script>
-	//initialize some global variables
+  //initialize some global variables
   name_id_map = {};
   id_name_map = {};
   code_id_map = {};
@@ -89,11 +104,12 @@ h3#title {
   us_total = {};
   by_year = {};
   by_state = {};
+  all_states = {};
   var interval = 1500;
   var animate = true;
   var numerator = "Total";
   var denominator = "Population";
-  var allTime = false;
+  var allTime = true;
   var minYear = 1990
   var maxYear = 2014
   var allTimeRef = 0;
@@ -140,7 +156,7 @@ h3#title {
 		title_row.append("td").text("Colors")
 		
 	var title = info.append("h3").attr("id","title").attr("style","text-align: right");
-	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox");
+	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox").attr("style","text-align: right");
 	
 	//create the svg container
 	var svg = d3.select("body").append("svg")
@@ -189,7 +205,12 @@ h3#title {
 			var sel = document.getElementById('num_sel');  
 			//var state = active.node().id;
 			numerator = sel.options[sel.selectedIndex].value; 
-			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			allTimeAvgNumerator = getAllTimeUSAvg(numerator);
+			allTimeAvgDenominator = getAllTimeUSAvg(denominator);
+			allTimeRef = allTimeAvgNumerator/allTimeAvgDenominator;
+			
+			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
+			
 			if(active.node()!=null) {
 				var state = active.node().id;
 				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
@@ -204,6 +225,8 @@ h3#title {
 			//var state = active.node().id;
 			denominator = sel.options[sel.selectedIndex].value; 
 			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			
+			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
 			//debugger;
 			if(active.node()!=null) {
 				var state = active.node().id;
@@ -220,6 +243,7 @@ h3#title {
 			if(sel.options[sel.selectedIndex].value=="All Time") {
 				allTimeBasis = true; 
 				allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+				[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
 			} else allTimeBasis = false;
 			console.log("AllTimeBasis: " + allTimeBasis);
 			allTime =allTimeBasis;
@@ -274,8 +298,8 @@ h3#title {
 	var menuCol = button_row.append("td")
 	var basisSelect = menuCol.append("select")
 		basisSelect.attr("id","basis_sel");
-		basisSelect.append("option").text("All Time");
-		basisSelect.append("option").property('selected','selected').text("Same Year");
+		basisSelect.append("option").property('selected','selected').text("All Time");
+		basisSelect.append("option").text("Same Year");
 		basisSelect.on('click', updateRefBasis);
 		
 	var tooltip = d3.select("body").append("div")	
@@ -380,11 +404,15 @@ h3#title {
 		by_state = d3.nest()
 			.key(function(d) { return d.State; })
 			.entries(energy_data);
-			
+		
+		all_states = energy_data.filter(function(d) { return d.State!="US-TOTAL" });
+		
+
 		//var usAvgPop = getAllTimeUSAvg('Population');
 		//var usAvgCoal = getAllTimeUSAvg('Coal');
 		[minYear,maxYear] = d3.extent(by_year, function(d) { return +d["key"]} );
-		
+		[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
+		//debugger;
 		//for(year in usData.values) usAvgPop += +usData.values[year]['Population'];
 		startTimerLoop();
 	}
@@ -392,8 +420,8 @@ h3#title {
 	//Function is called for each year after each timer interval to update the yearly data for the chart.
 	function update_year(leaf,year) {
 		//debugger;
-		//console.log("year: " + year);
-		
+		console.log("year: " + year);
+		console.log("lef: " + leaf[2].State);
 		for (l in leaf) {
 			if(leaf[l].State.toUpperCase()=='US-TOTAL') {
 				us_total = leaf[l]
@@ -402,16 +430,44 @@ h3#title {
 
 		var title = year;
 		
+		//Set extents color ramp and legend.
 		var ratio_extent = d3.extent(leaf, function(d) { 
-				return (+d[numerator]/+d[denominator]) 
-			});
+			return (+d[numerator]/+d[denominator]);
+		});
+		
+		//override if we are looking at all-time comparison
+		if(allTime==true){
+			ratio_extent = [minRatio,maxRatio];
+		}
 			
 		var colorScale = d3.scale.quantize()
 			.domain(ratio_extent)
 			.range(d3.scale.linear().domain(ratio_extent).range([lowColor,highColor]));
+		
+		//Legend
+		var ramp=d3.scale.linear().domain(ratio_extent).range([lowColor,highColor])
+		legendBox.selectAll("*").remove();
+		var legend = d3.select('#legendBox')
+			.append('ul')
+			.attr('class', 'list-inline');
+
+		var keys = legend.selectAll('li.key')
+			.data([(0),(ratio_extent[1]/5)*1,(ratio_extent[1]/5)*2,(ratio_extent[1]/5)*3,(ratio_extent[1]/5)*4,(ratio_extent[1]/5)*5]);
+
+		//debugger;
+		keys.enter().append('li')
+			.attr('class', 'key')
+			.style('border-top-color', String)
+			.style('color', function(d) {
+				var r = ramp(d);
+				return r;
+			})
+			.text(function(d) {
+				return d.toFixed(2);
+			});
 			
 		//Initialize values based on the assumption we're using a per-year ref_factor.
-		var ref_factor = +us_total[numerator]/+us_total[denominator];
+		var ref_factor = (+us_total[numerator]/+us_total[denominator]).toFixed(4);
 		var titleStr = year + " - US "
 		//Overwrite if allTime selection is selected.
 		if(allTime==true){
