@@ -563,21 +563,7 @@ li.key {
 		.duration(750)
        .style("stroke-width", 1.5 / scale + "px")
        .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-	  
 	
-	stateChartBG.transition()		
-		.duration(700)		
-		.style("width", 640 + "px")
-		.style("height",480 + "px")
-		.style("opacity", .9);	
-	stateChartBG
-		.style("left",  (640/2) + "px")		
-		.style("top",  (480/2)+ "px");
-		
-	var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
-	
-	chartTitle.html(state + " vs US-TOTAL " + numerator + "/" + denominator);
-			
 	tooltip.transition()
 		.duration(480)
 		.style("opacity",0);
@@ -594,6 +580,7 @@ li.key {
 		var chartData1 = focusData[0].values.concat(focusData[1].values);
 		
 		var  chartData2 = [];
+		var  chartData3 = [];
 		
 		//debugger;
 		chartData1.forEach(function (d, i) {
@@ -602,8 +589,11 @@ li.key {
 			chartData2.push({
 				"Year": d["Year"],
 				"State": d["State"],
-				"Val": chartVal
+				"Val": chartVal,
+				"Num": +d[numerator],
+				"Den": +d[denominator]
 			});
+
 		});
 		return chartData2;
 	}
@@ -612,29 +602,26 @@ li.key {
 	function drawChartstate(stateCode) {
 		//alert(stateCode);
 		
+		
 		stateChartBG.selectAll("*").remove();
 	
+		stateChartBG.transition()		
+			.duration(700)		
+			.style("width", 640 + "px")
+			.style("height",680 + "px")
+			.style("opacity", .9);	
+		stateChartBG
+			.style("left",  (640/2) + "px")		
+			.style("top",  (480/2)+ "px");
+			
 		var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
 		chartTitle.html(stateCode + " vs US-TOTAL " + numerator + "/" + denominator);
-	    var svg = dimple.newSvg(".stateChartBG", 590, 400);
+	    var svg = dimple.newSvg(".stateChartBG", 590, 700);
    //d3.tsv("/data/example_data.tsv", function (data) {
       //data = dimple.filterData(data, "Owner", ["Aperture", "Black Mesa"])
-		var focusData = dimple.filterData(by_state, "key",[stateCode,"US-TOTAL"]);
-		var chartData1 = focusData[0].values.concat(focusData[1].values);
 		
-		var  chartData2 = [];
+		var  chartData2 = updateChartData(stateCode);
 		
-		//debugger;
-		chartData1.forEach(function (d, i) {
-			var chartValName = d[numerator] + "/" + d[denominator];
-			var chartVal = +d[numerator]/+d[denominator];
-			chartData2.push({
-				"Year": d["Year"],
-				"State": d["State"],
-				"Val": chartVal
-			});
-		});
-
 		myChart = new dimple.chart(svg, chartData2);
 	  
 		myChart.setBounds(60, 30, 505, 305);
@@ -643,10 +630,41 @@ li.key {
 		var y = myChart.addMeasureAxis("y", "Val");
 		y.title = numerator + " / " + denominator;
 		myChart.addSeries("State", dimple.plot.line);
-		myChart.assignColor("US-TOTAL","SteelBlue")
-		myChart.assignColor(stateCode,"Coral")
+		myChart.assignColor("US-TOTAL","SteelBlue");
+		myChart.assignColor(stateCode,"Coral");
 		myChart.addLegend(60, 10, 500, 20, "right");
 		myChart.draw();
+		
+		var chartTitle2 = stateChartBG.append("div").attr("class","chartTitle");
+		chartTitle2.html(stateCode + "  " + numerator + " and " + denominator);
+		
+		//Add state detail charts breaking down the ratio into it's components
+		myChart2 = new dimple.chart(svg, dimple.filterData(chartData2,"State",stateCode));
+	  
+		myChart2.setBounds(60, 430, 240, 125);
+		var x2 = myChart2.addCategoryAxis("x", "Year");
+		x2.addOrderRule("Date");
+		var y2 = myChart2.addMeasureAxis("y", "Num");
+		y2.title = stateCode + " " + numerator ;
+		myChart2.addSeries("State", dimple.plot.line);
+
+		myChart2.assignColor(stateCode,"Red");
+		//myChart2.addLegend(60, 10, 500, 20, "right");
+		myChart2.draw();
+		
+		myChart3 = new dimple.chart(svg, dimple.filterData(chartData2,"State",stateCode));
+		myChart3.setBounds(360, 430, 240, 125);
+		var x3 = myChart3.addCategoryAxis("x", "Year");
+		x3.addOrderRule("Date");
+		var y3 = myChart3.addMeasureAxis("y", "Den");
+		y3.title = stateCode + " " + denominator ;
+		myChart3.addSeries("State", dimple.plot.line);
+
+		myChart3.assignColor(stateCode,"Blue");
+		//myChart2.addLegend(60, 10, 500, 20, "right");
+		myChart3.draw();
+		
+
 	}
 
 	//Function to reset an active state when it's clicked again.
