@@ -105,17 +105,19 @@ li.key {
   by_year = {};
   by_state = {};
   all_states = {};
-  var interval = 1500;
+  var interval = 50;
+  var speed = "High";
   var animate = true;
-  var numerator = "Total";
-  var denominator = "Population";
+  var numerator = "Wind Solar and Geothermal";
+  var denominator = "Total Energy";
   var allTime = true;
   var minYear = 1990
   var maxYear = 2014
   var allTimeRef = 0;
-  var lowColor = "Red";
+  var lowColor = "White";
   var highColor = "Green";
   var myChart = null;
+  var showIntro = true;
   
   //load mapping from state names to state ID #'s from the geojson dataset to state codes and names.  
   //Then create some dictionary objects for lookup.
@@ -143,17 +145,19 @@ li.key {
 	//assign the projection to a path object
 	var path = d3.geo.path()
 		.projection(projection);
-	
-	//create a  container for controls and info.
-	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div");
-	var info = controls.append("div").attr("id","info");
-	info.append("h1").attr("id","year");
 
-	var control_table = info.append("table").attr("class","control_table").attr("id","control_table").attr("style","float: left");
-	var title_row = control_table.append("tr")
-		title_row.append("td").text("Numerator")
-		title_row.append("td").text("Denominator")
-		title_row.append("td").text("Colors")
+	var info = d3.select("body").append("div").attr("id","info");
+	info.append("h1").attr("id","year");		
+	//create a  container for controls and info.
+	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div").style("opacity", 0);
+
+
+	var control_table = controls.append("table").attr("class","control_table").attr("id","control_table").attr("style","float: left");
+	var title_row = control_table.append("tr");
+		title_row.append("td").text("Numerator");
+		title_row.append("td").text("Denominator");
+		title_row.append("td").text("Colors");
+		title_row.append("td").text("Speed");
 		
 	var title = info.append("h3").attr("id","title").attr("style","text-align: right");
 	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox").attr("style","text-align: right");
@@ -177,19 +181,23 @@ li.key {
 		"Population",
 		"Pumped Storage",
 		"Solar Thermal and Photovoltaic",
+		"Wind Solar and Geothermal",
 		"Total Energy",
 		"Wind",
-		'Wood Based Fuels and Biomass',
-		'Fossil Fuels Total',
-		'Clean Renewables Total'
+		"Wood Based Fuels and Biomass",
+		"Fossil Fuels Total",
+		"Clean Renewables Total"
 		]
 
 	var den_options = [
 		"GDP",
-		"Population"
+		"Population",
+		"Fossil Fuels Total",
+		"Total Energy"
 		]
 		
 	var color_options = [
+	    "White",
 		"Orange",
 		"Blue",
 		"Red",
@@ -198,6 +206,12 @@ li.key {
 		"Green",
 		"Magenta",
 		"Cyan"
+		]
+		
+	var speed_options = [
+		"Low",
+		"Medium",
+		"High"
 		]
 		
 	//event handlers for pulldown menu change
@@ -259,6 +273,11 @@ li.key {
 			var sel = document.getElementById('highColor_sel'); 
 			highColor = sel.options[sel.selectedIndex].value;
 		};
+		
+	var updateSpeed = function() {
+		var sel = document.getElementById('speed_sel');
+		speed = sel.options[sel.selectedIndex].value;
+		}
 
 	//Add controls
 	var control_row = control_table.append("tr");
@@ -267,7 +286,7 @@ li.key {
 		selectNum.selectAll("option")
 			.data(num_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Clean Renewables Total') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d==numerator) return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectNum.on("change",updateNumerator);
 		
@@ -276,15 +295,14 @@ li.key {
 		selectDen.selectAll("option")
 			.data(den_options)
 			.enter()
-			.append("option").property('selected', function(d) { if(d=='Population') return 'selected'; else return '' })
+			.append("option").property('selected', function(d) { if(d==denominator) return 'selected'; else return '' })
 			.text(function(d) { return d; });
 		selectDen.on("change",updateDenominator);
 		
 	var button_row = control_table.append("tr");
 	var buttons_col = button_row.append("td");
 	var buttons_div = buttons_col.append("div").style("float","left");
-//	var speedDiv = button_row.append("td").append("div");
-//	     speedDiv.attr("class","right-justify").text("Speed");
+
 	var startButton = buttons_col.append("button");
 		startButton.text("Start");
 		startButton.on("mouseover", function(d) {console.log("mouseover start. ")});
@@ -331,6 +349,17 @@ li.key {
 			.enter()
 			.append("option").property('selected', function(d) { if(d==highColor) return 'selected'; else return '' })
 			.text(function(d) { return d; });
+			
+		var selectSpeedTd = control_row.append("td")
+		var selectSpeed = selectSpeedTd.append("select");
+		selectSpeed.on("change",updateSpeed);
+		selectSpeed.attr("id","speed_sel");
+		selectSpeed.selectAll("option")
+			.data(speed_options)
+			.enter()
+			.append("option").property('selected', function(d) { if (d==speed) return 'selected'; else return '' })
+			.text(function(d) { return d;});
+
 
 	//Create SVG object
 	svg.append("rect")
@@ -374,6 +403,7 @@ li.key {
 	//load energy data and create some additional variables for each row.
 	 d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
+		d['Wind Solar and Geothermal'] = ((+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']));
 		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
 		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
@@ -467,7 +497,7 @@ li.key {
 			});
 			
 		//Initialize values based on the assumption we're using a per-year ref_factor.
-		var ref_factor = (+us_total[numerator]/+us_total[denominator]).toFixed(4);
+		var ref_factor = (+us_total[numerator]/+us_total[denominator]);
 		var titleStr = year + " - US "
 		//Overwrite if allTime selection is selected.
 		if(allTime==true){
@@ -475,7 +505,7 @@ li.key {
 			titleStr = minYear + " - " + maxYear + " US Avg "
 		}
 		document.getElementById('year').innerHTML=year;
-		document.getElementById('title').innerHTML= titleStr + numerator + " / " + denominator + " = " + ref_factor;
+		document.getElementById('title').innerHTML= titleStr + numerator + " / " + denominator + " = " + ref_factor.toFixed(4);
 		
 		for (state in leaf) {
 
@@ -523,15 +553,36 @@ li.key {
 		updateNumerator();
 		updateDenominator();
 		var i=0;
-
+		var ticks = 0;
 		//debugger;
 		console.log("Starting timer function.");
 		var upd = function() {
+			//var ticks = 1;
+			var tickMultiplier = 20;
+			if(speed=="Low") tickMultiplier = 50;
+			if(speed=="Medium") tickMultiplier = 25;
+			if(speed=="High") tickMultiplier = 10;
 			if(animate==true) {
-				if(i>=by_year.length) i=0;
-				//debugger;
-				update_year(by_year[i].values,by_year[i].key,allTimeRef);
-				i++;
+				if((ticks%tickMultiplier) == 0) {
+					if(i>=by_year.length) {
+						i=0;
+						if(showIntro==true) {
+							//pause the show and turn on the controls
+							animate = false;
+							showIntro = false;
+							controls.transition()
+								.duration(4650)
+								.style("opacity", 100);
+						}
+						
+					} 
+						
+					//debugger;
+					update_year(by_year[i].values,by_year[i].key,allTimeRef);
+					i++;
+					ticks=0;
+				}
+				ticks++;
 			}
 		}
 
