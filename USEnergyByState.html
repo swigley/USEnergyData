@@ -119,6 +119,15 @@ li.key {
   var myChart = null;
   var showIntro = true;
   
+  var introPage = [];
+  
+  introPage[0]="test";
+  introPage[1]="test2";
+  introPage[2]="test3";
+  introPage[3]="test4";
+  introPage[4]="test5";
+
+  debugger;
   //load mapping from state names to state ID #'s from the geojson dataset to state codes and names.  
   //Then create some dictionary objects for lookup.
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
@@ -562,6 +571,7 @@ li.key {
 			if(speed=="Low") tickMultiplier = 50;
 			if(speed=="Medium") tickMultiplier = 25;
 			if(speed=="High") tickMultiplier = 10;
+			
 			if(animate==true) {
 				if((ticks%tickMultiplier) == 0) {
 					if(i>=by_year.length) {
@@ -576,9 +586,9 @@ li.key {
 						}
 						
 					} 
-						
+				if(animate==true) update_year(by_year[i].values,by_year[i].key,allTimeRef);
 					//debugger;
-					update_year(by_year[i].values,by_year[i].key,allTimeRef);
+					
 					i++;
 					ticks=0;
 				}
