@@ -8,21 +8,21 @@ I found a dataset showing US population by state for the same time period, 1990 
 
 ##Feedback##
 
-Elizabeth C. 
+###Elizabeth C. ###
 "I think it would be better to show both factors in the ratio in separate charts when viewing the state chart to make it more clear which one causes the value to going up or down."
 
-Enhancement:  
+####Enhancement: ####
 	I changed the chart that is displayed when clicking an individual state to show three charts instead of one.  The main chart still shows the ratio between energy source and the selected units for the state (Population, GDP, Percent of total), and for the whole US, but also shows two charts below to show the two factors that make up the ratio in separate charts.
 
-Aaron W.
+###Aaron W.###
 "Looking at these ratios is a little unclear.  I'd like to better be able to understand the units I'm looking at here."
 
-Enhancement:
+####Enhancement:####
 	When I demonstrated the visualization for Aaron, the chart named the ratio selections 'Numerator' and 'Denominator', and didn't preset the values as specific units, but just a relative number which was calculated by literally dividing the value selected as 'Numerator' by the value selected as 'Denominator' and displaying the states relative to each other, without really defining what the values mean.
 	
 	I changed the labels for the numerator and denominator to 'Source' and 'Units' and defined what those units actually mean in terms of Megawatthours produced per person or dollar.  For the percent of US Total option, I covert the ratio value, which is between 0 and 1 to a percentage so that it is easier to conceptualize.
 
-Kevin P.
+###Kevin P.###
 "I think the story should be something along the lines of how is my state doing in terms of reducing energy sources that contribute to environmental impact."
 
 
