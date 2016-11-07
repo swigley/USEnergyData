@@ -51,6 +51,21 @@ div.stateChartBG {
   pointer-events: none;			
 }
 
+div.downloadLink {
+	font: 16px;
+	padding: 15px;
+	float: right;
+	color: Orange;
+}
+
+div.introBox {
+	font-size: 36px;
+	font-family:  'Abel', sans-serif;
+	padding: 15px;
+	float: left;
+	color: Black ;
+}
+
 h1#year {
   font-family: 'Orbitron', sans-serif;
   color: red;
@@ -106,10 +121,13 @@ li.key {
   by_state = {};
   all_states = {};
   var interval = 50;
-  var speed = "High";
+  var speed = "Medium";
   var animate = true;
-  var numerator = "Wind Solar and Geothermal";
+  var numerator = "Clean Renewables Total";
+  //var numerator = "Wind Solar and Geothermal";
   var denominator = "Total Energy";
+  var units = "Percent of Total Energy Produced";
+  var unitsDisplayMultiplier = 100;
   var allTime = true;
   var minYear = 1990
   var maxYear = 2014
@@ -118,16 +136,22 @@ li.key {
   var highColor = "Green";
   var myChart = null;
   var showIntro = true;
-  
+  //set svg width and height
+  var width = 1400;
+  var height = 750;  
   var introPage = [];
   
-  introPage[0]="test";
-  introPage[1]="test2";
-  introPage[2]="test3";
-  introPage[3]="test4";
-  introPage[4]="test5";
 
-  debugger;
+  introPage[0]="Energy production is a cheif source of greenhouse gas emmisions that contribute to global climate change."
+  introPage[1]="In 2001 the United States declined to ratify the Kyoto Protocol.";
+  introPage[2]="The low up-front cost of fossil fuels has kept energy producers and consumers complacent to change to cleaner, and sometimes more costly alternatives.";
+  introPage[3]="The cost of environmental impact due to our energy choices is increasing, while the cost of clean, renewable energy sources is decreasing.";
+  introPage[4]="On November 3 2016 the United States ratified the Paris Climate Agreement which aims to keep global temperature increase lower than 2 degrees Celcius above pre-industrial levels.";
+  introPage[5]="In many regions today, the cost of clean renewable energy sources is lower than fossil fuel equivalents.";
+  introPage[6]="How is your state keeping up?";
+  
+
+
   //load mapping from state names to state ID #'s from the geojson dataset to state codes and names.  
   //Then create some dictionary objects for lookup.
   d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
@@ -140,11 +164,13 @@ li.key {
 		id_code_map[names[i].id] = names[i].code;
 	  }
 	});
+
+	var info = d3.select("body").append("div").attr("id","info");
+	info.append("h1").attr("id","year");	
+	var title = info.append("h3").attr("id","title").attr("style","text-align: right");
+	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox").attr("style","text-align: right");	
   
-	//set svg width and height
-	var width = 1400,
-		height = 750,
-		active = d3.select(null);
+	var	active = d3.select(null);
 
 	//set map projection
 	var projection = d3.geo.albersUsa()
@@ -155,21 +181,6 @@ li.key {
 	var path = d3.geo.path()
 		.projection(projection);
 
-	var info = d3.select("body").append("div").attr("id","info");
-	info.append("h1").attr("id","year");		
-	//create a  container for controls and info.
-	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div").style("opacity", 0);
-
-
-	var control_table = controls.append("table").attr("class","control_table").attr("id","control_table").attr("style","float: left");
-	var title_row = control_table.append("tr");
-		title_row.append("td").text("Numerator");
-		title_row.append("td").text("Denominator");
-		title_row.append("td").text("Colors");
-		title_row.append("td").text("Speed");
-		
-	var title = info.append("h3").attr("id","title").attr("style","text-align: right");
-	var legendBox = info.append("div").attr("id","legendBox").attr("class","legendBox").attr("style","text-align: right");
 	
 	//create the svg container
 	var svg = d3.select("body").append("svg")
@@ -179,7 +190,7 @@ li.key {
 	//create static arrays for default control options
 	var num_options = [
 		"Coal",
-		"GDP",
+//		"GDP",
 		"Geothermal",
 		"Hydroelectric Conventional",
 		"Natural Gas",
@@ -187,7 +198,7 @@ li.key {
 		"Other",
 		"Other Gases",
 		"Petroleum",
-		"Population",
+//		"Population",
 		"Pumped Storage",
 		"Solar Thermal and Photovoltaic",
 		"Wind Solar and Geothermal",
@@ -198,13 +209,17 @@ li.key {
 		"Clean Renewables Total"
 		]
 
-	var den_options = [
-		"GDP",
-		"Population",
-		"Fossil Fuels Total",
-		"Total Energy"
-		]
-		
+//	var den_options = [
+//		"GDP",
+//		"Population",
+//		"Total Energy"
+//		]
+	
+	var units_options = [
+		"Watthours per Dollar GDP",
+		"Megawatthours Per Capita",
+		"Percent of Total Energy Produced"
+	]
 	var color_options = [
 	    "White",
 		"Orange",
@@ -223,152 +238,33 @@ li.key {
 		"High"
 		]
 		
-	//event handlers for pulldown menu change
-	var updateNumerator = function() {
-			var sel = document.getElementById('num_sel');  
-			//var state = active.node().id;
-			numerator = sel.options[sel.selectedIndex].value; 
-			allTimeAvgNumerator = getAllTimeUSAvg(numerator);
-			allTimeAvgDenominator = getAllTimeUSAvg(denominator);
-			allTimeRef = allTimeAvgNumerator/allTimeAvgDenominator;
-			
-			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
-			
-			if(active.node()!=null) {
-				var state = active.node().id;
-				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
-				myChart.axes[1].title = numerator + "/" + denominator;
-				//debugger;
-				myChart.data = updateChartData(state);
-				myChart.draw();
-				}
-		};
-	var updateDenominator = function() {
-			var sel = document.getElementById('den_sel'); 
-			//var state = active.node().id;
-			denominator = sel.options[sel.selectedIndex].value; 
-			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
-			
-			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
-			//debugger;
-			if(active.node()!=null) {
-				var state = active.node().id;
-				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + "/" + denominator);
-				myChart.axes[1].title = numerator + "/" + denominator;
-				myChart.data = updateChartData(state);
-				myChart.draw();
+
+		
+	//Compute US averages for the full timespan in the data.
+	function getAllTimeUSAvg(valueName) {
+		var usData;
+		var usSum=0;
+		for (state in by_state) if(by_state[state].key.toUpperCase()=='US-TOTAL') usData = by_state[state];
+		for (year in usData.values) {
+			usSum += (+usData.values[year][valueName]);
 			}
-		};
-	
-	var updateRefBasis = function() {
-			var allTimeBasis = true;
-			var sel = document.getElementById('basis_sel'); 
-			if(sel.options[sel.selectedIndex].value=="All Time") {
-				allTimeBasis = true; 
-				allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
-				[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
-			} else allTimeBasis = false;
-			console.log("AllTimeBasis: " + allTimeBasis);
-			allTime =allTimeBasis;
-			return allTimeBasis; 
-		}
-				
-	var updateLowColor = function() {
-			var sel = document.getElementById('lowColor_sel'); 
-			lowColor = sel.options[sel.selectedIndex].value;
-		};
-		
-	var updateHighColor = function() {
-			var sel = document.getElementById('highColor_sel'); 
-			highColor = sel.options[sel.selectedIndex].value;
-		};
-		
-	var updateSpeed = function() {
-		var sel = document.getElementById('speed_sel');
-		speed = sel.options[sel.selectedIndex].value;
-		}
+		return usSum/usData.values.length;
+	}
 
-	//Add controls
-	var control_row = control_table.append("tr");
-	var selectNum = control_row.append("td").append("select");
-		selectNum.attr("id","num_sel");
-		selectNum.selectAll("option")
-			.data(num_options)
-			.enter()
-			.append("option").property('selected', function(d) { if(d==numerator) return 'selected'; else return '' })
-			.text(function(d) { return d; });
-		selectNum.on("change",updateNumerator);
-		
-	var selectDen = control_row.append("td").append("select");
-		selectDen.attr("id","den_sel");
-		selectDen.selectAll("option")
-			.data(den_options)
-			.enter()
-			.append("option").property('selected', function(d) { if(d==denominator) return 'selected'; else return '' })
-			.text(function(d) { return d; });
-		selectDen.on("change",updateDenominator);
-		
-	var button_row = control_table.append("tr");
-	var buttons_col = button_row.append("td");
-	var buttons_div = buttons_col.append("div").style("float","left");
 
-	var startButton = buttons_col.append("button");
-		startButton.text("Start");
-		startButton.on("mouseover", function(d) {console.log("mouseover start. ")});
-		startButton.on("click", function() { animate = true;} );
-	var stopButton = buttons_col.append("button");
-		stopButton.text("Stop");
-		stopButton.on('click', function() {animate = false;});
-	var wordzDiv = buttons_col.append("div").style("float","right");
-		wordzDiv.text("Reference Basis: ")
+
+	//create a  container for controls.
+	var controls = d3.select("body").append("div").attr("class","control_div").attr("id","control_div").style("opacity", 0);
+	var introBox = controls.append("div").attr("class","introBox");
 	
-	var menuCol = button_row.append("td")
-	var basisSelect = menuCol.append("select")
-		basisSelect.attr("id","basis_sel");
-		basisSelect.append("option").property('selected','selected').text("All Time");
-		basisSelect.append("option").text("Same Year");
-		basisSelect.on('click', updateRefBasis);
-		
 	var tooltip = d3.select("body").append("div")	
 		.attr("class", "tooltip")				
 		.style("opacity", 0);
-	
+		
 	var stateChartBG = d3.select("body").append("div")	
 		.attr("class", "stateChartBG")				
 		.style("opacity", 0);
 	stateChartBG.innerHTML = "";
-		
-	var selectLowColorTd = control_row.append("td")
-	var selectLowColor = selectLowColorTd.append("select")
-		selectLowColor.on("change",updateLowColor);
-		selectLowColor.attr("id","lowColor_sel");
-		selectLowColor.selectAll("option")
-			.data(color_options)
-			.enter()
-			.append("option").property('selected', function(d) { if(d==lowColor) return 'selected'; else return '' })
-			.text(function(d) { return d; });
-		
-	var selectHighColorTd = button_row.append("td");
-	
-		var selectHighColor = selectHighColorTd.append("select")
-		selectHighColor.on("change",updateHighColor);
-		selectHighColor.attr("id","highColor_sel");
-		selectHighColor.selectAll("option")
-			.data(color_options)
-			.enter()
-			.append("option").property('selected', function(d) { if(d==highColor) return 'selected'; else return '' })
-			.text(function(d) { return d; });
-			
-		var selectSpeedTd = control_row.append("td")
-		var selectSpeed = selectSpeedTd.append("select");
-		selectSpeed.on("change",updateSpeed);
-		selectSpeed.attr("id","speed_sel");
-		selectSpeed.selectAll("option")
-			.data(speed_options)
-			.enter()
-			.append("option").property('selected', function(d) { if (d==speed) return 'selected'; else return '' })
-			.text(function(d) { return d;});
-
 
 	//Create SVG object
 	svg.append("rect")
@@ -413,7 +309,7 @@ li.key {
 	 d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
 		d['Wind Solar and Geothermal'] = ((+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']));
-		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']);
+		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']) + (+d['Pumped Storage']);
 		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
 		d['Total Energy'] = d['Total'];
@@ -421,16 +317,160 @@ li.key {
 		return d;
 	  }, plot_points);
 
-	//Compute US averages for the full timespan in the data.
-	function getAllTimeUSAvg(valueName) {
-		var usData;
-		var usSum=0;
-		for (state in by_state) if(by_state[state].key.toUpperCase()=='US-TOTAL') usData = by_state[state];
-		for (year in usData.values) {
-			usSum += (+usData.values[year][valueName]);
+function showControls() {
+		//event handlers for pulldown menu change
+	var updateNumerator = function() {
+			var sel = document.getElementById('num_sel');  
+			//var state = active.node().id;
+			numerator = sel.options[sel.selectedIndex].value; 
+			allTimeAvgNumerator = getAllTimeUSAvg(numerator);
+			allTimeAvgDenominator = getAllTimeUSAvg(denominator);
+			allTimeRef = allTimeAvgNumerator/allTimeAvgDenominator;
+			
+			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
+			
+			if(active.node()!=null) {
+				var state = active.node().id;
+				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + " " + units);
+				myChart.axes[1].title = numerator + "/" + denominator;
+				//debugger;
+				myChart.data = updateChartData(state);
+				myChart.draw();
+				}
+		};
+	var updateDenominator = function() {
+			var sel = document.getElementById('den_sel'); 
+			//var state = active.node().id;
+			units = sel.options[sel.selectedIndex].value; 
+			if(units=="Watthours per Dollar GDP") denominator = "GDP";
+			if(units=="Megawatthours Per Capita") denominator = "Population";
+			if(units=="Percent of Total Energy Produced") {
+				denominator = "Total Energy";
+				unitsDisplayMultiplier = 100;
+				
 			}
-		return usSum/usData.values.length;
-	}
+			allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+			
+			[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
+			//debugger;
+			if(active.node()!=null) {
+				var state = active.node().id;
+				d3.selectAll(".chartTitle").text(state + " vs US-TOTAL " + numerator + " " + units);
+				myChart.axes[1].title = numerator + "/" + denominator;
+				myChart.data = updateChartData(state);
+				myChart.draw();
+			}
+		};
+	
+	var updateRefBasis = function() {
+			var allTimeBasis = true;
+			var sel = document.getElementById('basis_sel'); 
+			if(sel.options[sel.selectedIndex].value=="All Time") {
+				allTimeBasis = true; 
+				allTimeRef = getAllTimeUSAvg(numerator)/getAllTimeUSAvg(denominator);
+				[minRatio,maxRatio] = d3.extent(all_states, function(d) { return (+d[numerator]/+d[denominator])} );
+			} else allTimeBasis = false;
+			console.log("AllTimeBasis: " + allTimeBasis);
+			allTime =allTimeBasis;
+			return allTimeBasis; 
+		}				
+	var updateLowColor = function() {
+			var sel = document.getElementById('lowColor_sel'); 
+			lowColor = sel.options[sel.selectedIndex].value;
+		};
+		
+	var updateHighColor = function() {
+			var sel = document.getElementById('highColor_sel'); 
+			highColor = sel.options[sel.selectedIndex].value;
+		};
+		
+	var updateSpeed = function() {
+		var sel = document.getElementById('speed_sel');
+		speed = sel.options[sel.selectedIndex].value;
+		}
+		
+		controls.selectAll("*").remove();
+	var control_table = controls.append("table").attr("class","control_table").attr("id","control_table").attr("style","float: left");
+	var title_row = control_table.append("tr");
+		title_row.append("td").text("Source");
+		title_row.append("td").text("Units");
+		title_row.append("td").text("Colors");
+		title_row.append("td").text("Speed");
+
+
+	//Add controls
+	var control_row = control_table.append("tr");
+	var selectNum = control_row.append("td").append("select");
+		selectNum.attr("id","num_sel");
+		selectNum.selectAll("option")
+			.data(num_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d==numerator) return 'selected'; else return '' })
+			.text(function(d) { return d; });
+		selectNum.on("change",updateNumerator);
+		
+	var selectDen = control_row.append("td").append("select");
+		selectDen.attr("id","den_sel");
+		selectDen.selectAll("option")
+			.data(units_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d==units) return 'selected'; else return '' })
+			.text(function(d) { return d; });
+		selectDen.on("change",updateDenominator);
+		
+	var button_row = control_table.append("tr");
+	var buttons_col = button_row.append("td");
+	var buttons_div = buttons_col.append("div").style("float","left");
+
+	var startButton = buttons_col.append("button");
+		startButton.text("Start");
+		startButton.on("mouseover", function(d) {console.log("mouseover start. ")});
+		startButton.on("click", function() { animate = true;} );
+	var stopButton = buttons_col.append("button");
+		stopButton.text("Stop");
+		stopButton.on('click', function() {animate = false;});
+	var wordzDiv = buttons_col.append("div").style("float","right");
+		wordzDiv.text("Reference Basis: ")
+	
+	var menuCol = button_row.append("td")
+	var basisSelect = menuCol.append("select")
+		basisSelect.attr("id","basis_sel");
+		basisSelect.append("option").property('selected','selected').text("All Time");
+		basisSelect.append("option").text("Same Year");
+		basisSelect.on('click', updateRefBasis);
+		
+	var selectLowColorTd = control_row.append("td")
+	var selectLowColor = selectLowColorTd.append("select")
+		selectLowColor.on("change",updateLowColor);
+		selectLowColor.attr("id","lowColor_sel");
+		selectLowColor.selectAll("option")
+			.data(color_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d==lowColor) return 'selected'; else return '' })
+			.text(function(d) { return d; });
+		
+	var selectHighColorTd = button_row.append("td");
+	
+		var selectHighColor = selectHighColorTd.append("select")
+		selectHighColor.on("change",updateHighColor);
+		selectHighColor.attr("id","highColor_sel");
+		selectHighColor.selectAll("option")
+			.data(color_options)
+			.enter()
+			.append("option").property('selected', function(d) { if(d==highColor) return 'selected'; else return '' })
+			.text(function(d) { return d; });
+			
+		var selectSpeedTd = control_row.append("td")
+		var selectSpeed = selectSpeedTd.append("select");
+		selectSpeed.on("change",updateSpeed);
+		selectSpeed.attr("id","speed_sel");
+		selectSpeed.selectAll("option")
+			.data(speed_options)
+			.enter()
+			.append("option").property('selected', function(d) { if (d==speed) return 'selected'; else return '' })
+			.text(function(d) { return d;});
+}
+
 
 	//Create data summaries by state and by year then start the animation timer.
 	function plot_points(energy_data) {
@@ -502,7 +542,7 @@ li.key {
 				return r;
 			})
 			.text(function(d) {
-				return d.toFixed(2);
+				return (d*unitsDisplayMultiplier).toFixed(2);
 			});
 			
 		//Initialize values based on the assumption we're using a per-year ref_factor.
@@ -514,7 +554,7 @@ li.key {
 			titleStr = minYear + " - " + maxYear + " US Avg "
 		}
 		document.getElementById('year').innerHTML=year;
-		document.getElementById('title').innerHTML= titleStr + numerator + " / " + denominator + " = " + ref_factor.toFixed(4);
+		document.getElementById('title').innerHTML= titleStr + numerator + "  " + units + " = " + (ref_factor*unitsDisplayMultiplier).toFixed(4);
 		
 		for (state in leaf) {
 
@@ -545,7 +585,7 @@ li.key {
             tooltip.transition()		
                 .duration(200)		
                 .style("opacity", .9);		
-            tooltip.html(d.energyData["Year"] + " " + d.energyData["State"] + " " + numerator + " / " + denominator + ": " + (+d.energyData[numerator]/+d.energyData[denominator]).toFixed(2) +  "<br/>")	
+            tooltip.html(d.energyData["Year"] + " " + d.energyData["State"] + " " + numerator + "   " + units + ": " + ((+d.energyData[numerator]/+d.energyData[denominator])*unitsDisplayMultiplier).toFixed(2) +  "<br/>")	
                 .style("left", (d3.event.pageX) + "px")		
                 .style("top", (d3.event.pageY - 28) + "px");	
             })
@@ -559,8 +599,8 @@ li.key {
 	//update data from controls and start timer loop
 	function startTimerLoop(allTimeRef) {
 		
-		updateNumerator();
-		updateDenominator();
+	//	updateNumerator();
+	//	updateDenominator();
 		var i=0;
 		var ticks = 0;
 		//debugger;
@@ -574,12 +614,23 @@ li.key {
 			
 			if(animate==true) {
 				if((ticks%tickMultiplier) == 0) {
-					if(i>=by_year.length) {
+					if(i<by_year.length) {
+						
+						controls.transition()
+							.duration(1500)
+							.style("opacity", 100);
+
+						introBox.transition()
+							.duration(100)
+							.text(introPage[(i/4).toFixed(0)]);
+							
+						} else {
 						i=0;
 						if(showIntro==true) {
 							//pause the show and turn on the controls
 							animate = false;
 							showIntro = false;
+							showControls();
 							controls.transition()
 								.duration(4650)
 								.style("opacity", 100);
@@ -645,8 +696,8 @@ li.key {
 		
 		//debugger;
 		chartData1.forEach(function (d, i) {
-			var chartValName = d[numerator] + "/" + d[denominator];
-			var chartVal = +d[numerator]/+d[denominator];
+			var chartValName = d[numerator] + " " + units;
+			var chartVal = (+d[numerator]/+d[denominator])*unitsDisplayMultiplier;
 			chartData2.push({
 				"Year": d["Year"],
 				"State": d["State"],
@@ -671,13 +722,18 @@ li.key {
 			.style("width", 640 + "px")
 			.style("height",680 + "px")
 			.style("opacity", .9);	
+
+		var browserWidth = window.innerWidth
+			|| document.documentElement.clientWidth
+			|| document.body.clientWidth;
+		
 		stateChartBG
-			.style("left",  (640/2) + "px")		
+			.style("left",  (browserWidth/2) - (640/2) + "px")		
 			.style("top",  (480/2)+ "px");
 			
 		var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
-		chartTitle.html(stateCode + " vs US-TOTAL " + numerator + "/" + denominator);
-	    var svg = dimple.newSvg(".stateChartBG", 590, 700);
+		chartTitle.html(stateCode + " vs US-TOTAL " + numerator + " " + units);
+	    var svg = dimple.newSvg(".stateChartBG", 590, 620);
    //d3.tsv("/data/example_data.tsv", function (data) {
       //data = dimple.filterData(data, "Owner", ["Aperture", "Black Mesa"])
 		
@@ -689,15 +745,15 @@ li.key {
 		var x = myChart.addCategoryAxis("x", "Year");
 		x.addOrderRule("Date");
 		var y = myChart.addMeasureAxis("y", "Val");
-		y.title = numerator + " / " + denominator;
+		y.title = numerator + "   " + units;
 		myChart.addSeries("State", dimple.plot.line);
 		myChart.assignColor("US-TOTAL","SteelBlue");
 		myChart.assignColor(stateCode,"Coral");
 		myChart.addLegend(60, 10, 500, 20, "right");
 		myChart.draw();
 		
-		var chartTitle2 = stateChartBG.append("div").attr("class","chartTitle");
-		chartTitle2.html(stateCode + "  " + numerator + " and " + denominator);
+		//var chartTitle2 = stateChartBG.append("div").attr("class","chartTitle");
+		//chartTitle2.html(stateCode + "  " + numerator + " and " + denominator);
 		
 		//Add state detail charts breaking down the ratio into it's components
 		myChart2 = new dimple.chart(svg, dimple.filterData(chartData2,"State",stateCode));
@@ -725,6 +781,12 @@ li.key {
 		//myChart2.addLegend(60, 10, 500, 20, "right");
 		myChart3.draw();
 		
+		var dowloadLink = stateChartBG.append("div").attr("class","downloadLink");
+		dowloadLink.html("<a href='/file.txt' >Download CSV</a>");
+		
+		
+    
+
 
 	}
 
