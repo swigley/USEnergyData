@@ -11,20 +11,29 @@ I found a dataset showing US population by state for the same time period, 1990 
 ###Elizabeth C. ###
 "I think it would be better to show both factors in the ratio in separate charts when viewing the state chart to make it more clear which one causes the value to going up or down."
 
-####Enhancement: ####
-	I changed the chart that is displayed when clicking an individual state to show three charts instead of one.  The main chart still shows the ratio between energy source and the selected units for the state (Population, GDP, Percent of total), and for the whole US, but also shows two charts below to show the two factors that make up the ratio in separate charts.
+####Enhancement:####
+I changed the chart that is displayed when clicking an individual state to show three charts instead of one.  The main chart still shows the ratio between energy source and the selected units for the state (Population, GDP, Percent of total), and for the whole US, but also shows two charts below to show the two factors that make up the ratio in separate charts.
 
 ###Aaron W.###
 "Looking at these ratios is a little unclear.  I'd like to better be able to understand the units I'm looking at here."
 
 ####Enhancement:####
-	When I demonstrated the visualization for Aaron, the chart named the ratio selections 'Numerator' and 'Denominator', and didn't preset the values as specific units, but just a relative number which was calculated by literally dividing the value selected as 'Numerator' by the value selected as 'Denominator' and displaying the states relative to each other, without really defining what the values mean.
-	
-	I changed the labels for the numerator and denominator to 'Source' and 'Units' and defined what those units actually mean in terms of Megawatthours produced per person or dollar.  For the percent of US Total option, I covert the ratio value, which is between 0 and 1 to a percentage so that it is easier to conceptualize.
+When I demonstrated the visualization for Aaron, the chart named the ratio selections 'Numerator' and 'Denominator', and didn't preset the values as specific units, but just a relative number which was calculated by literally dividing the value selected as 'Numerator' by the value selected as 'Denominator' and displaying the states relative to each other, without really defining what the values mean.
+
+I changed the labels for the numerator and denominator to 'Source' and 'Units' and defined what those units actually mean in terms of Megawatthours produced per person or dollar.  For the percent of US Total option, I covert the ratio value, which is between 0 and 1 to a percentage so that it is easier to conceptualize.
 
 ###Kevin P.###
 "I think the story should be something along the lines of how is my state doing in terms of reducing energy sources that contribute to environmental impact."
 
+####Enhancement:####
+I created a short text into at page load, which presents the theme that climate change is underway, and the US is late to meet current UN emissions agreements, however progress is being made and some states are closer to being on track to meet our goals than others.
+
+
+###Emily W.###
+"I like the visualization, but it needs to stand out more.  Maybe you could make the map larger and the page header and intro text slightly smaller."
+
+####Enhancement:####
+I increased the scale of the map, while floating the header elements to either side to collapse the space they were taking and increasing the viewable area.  I also fixed the legend labels so that they were more visible than before.
 
 
 ##Data Sources##
