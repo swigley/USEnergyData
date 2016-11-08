@@ -137,6 +137,7 @@ svg {
   name_id_map = {};
   id_name_map = {};
   code_id_map = {};
+  code_name_map = {};
   id_code_map = {};
   us_total = {};
   by_year = {};
@@ -145,7 +146,7 @@ svg {
   var interval = 50;
   var speed = "Medium";
   var animate = true;
-  var numerator = "Clean Renewables Total";
+  var numerator = "All Clean Renewables";
   //var numerator = "Wind Solar and Geothermal";
   var denominator = "Total Energy";
   var units = "Percent of Total Energy Produced";
@@ -181,6 +182,7 @@ svg {
 		id_name_map[names[i].id] = names[i].name;
 		
 		code_id_map[names[i].code] = names[i].id;
+		code_name_map[names[i].code] = names[i].name;
 		id_code_map[names[i].id] = names[i].code;
 	  }
 	});
@@ -216,18 +218,18 @@ svg {
 		"Hydroelectric Conventional",
 		"Natural Gas",
 		"Nuclear",
+		"Petroleum",
 		"Other",
 		"Other Gases",
-		"Petroleum",
 //		"Population",
 		"Pumped Storage",
 		"Solar Thermal and Photovoltaic",
-		"Wind Solar and Geothermal",
-		"Total Energy",
 		"Wind",
 		"Wood Based Fuels and Biomass",
-		"Fossil Fuels Total",
-		"Clean Renewables Total"
+		"Wind Solar and Geothermal",
+		"Total Energy",
+		"All Fossil Fuels",
+		"All Clean Renewables"
 		]
 
 //	var den_options = [
@@ -320,10 +322,11 @@ svg {
 	 d3.csv("./annual_generation_state_clean3.csv", function(d) {
 		//Add aggregations here.
 		d['Wind Solar and Geothermal'] = ((+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']));
-		d['Clean Renewables Total'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']) + (+d['Pumped Storage']);
-		d['Fossil Fuels Total'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
+		d['All Clean Renewables'] = (+d['Hydroelectric Conventional']) + (+d['Solar Thermal and Photovoltaic']) + (+d['Geothermal']) + (+d['Wind']) + (+d['Pumped Storage']);
+		d['All Fossil Fuels'] = (+d['Natural Gas']) + (+d['Coal']) + (+d['Petroleum']);
 		d['Wood Based Fuels and Biomass'] = (+d['Other Biomass']) + (+d['Wood and Wood Derived Fuels']);
 		d['Total Energy'] = d['Total'];
+		d['StateName'] = code_name_map[d['State']];
 
 		return d;
 	  }, plot_points);
@@ -596,7 +599,7 @@ function showControls() {
             tooltip.transition()		
                 .duration(200)		
                 .style("opacity", .9);		
-            tooltip.html(d.energyData["Year"] + " " + d.energyData["State"] + " " + numerator + "   " + units + ": " + ((+d.energyData[numerator]/+d.energyData[denominator])*unitsDisplayMultiplier).toFixed(2) +  "<br/>")	
+            tooltip.html(d.energyData["Year"] + " " + code_name_map[d.energyData["State"]] + " " + numerator + "   " + units + ": " + ((+d.energyData[numerator]/+d.energyData[denominator])*unitsDisplayMultiplier).toFixed(2) +  "<br/>")	
                 .style("left", (d3.event.pageX) + "px")		
                 .style("top", (d3.event.pageY - 28) + "px");	
             })
@@ -743,7 +746,7 @@ function showControls() {
 			.style("top",  (480/2)+ "px");
 			
 		var chartTitle = stateChartBG.append("div").attr("class","chartTitle");
-		chartTitle.html(stateCode + " vs US-TOTAL " + numerator + " " + units);
+		chartTitle.html(code_name_map[stateCode] + " vs US-TOTAL " + numerator + " " + units);
 	    var svg = dimple.newSvg(".stateChartBG", 590, 620);
 		
 		var  chartData2 = updateChartData(stateCode);
@@ -768,7 +771,7 @@ function showControls() {
 		var x2 = myChart2.addCategoryAxis("x", "Year");
 		x2.addOrderRule("Date");
 		var y2 = myChart2.addMeasureAxis("y", "Num");
-		y2.title = stateCode + " " + numerator ;
+		y2.title = code_name_map[stateCode] + " " + numerator ;
 		myChart2.addSeries("State", dimple.plot.line);
 
 		myChart2.assignColor(stateCode,"Red");
@@ -780,7 +783,7 @@ function showControls() {
 		var x3 = myChart3.addCategoryAxis("x", "Year");
 		x3.addOrderRule("Date");
 		var y3 = myChart3.addMeasureAxis("y", "Den");
-		y3.title = stateCode + " " + denominator ;
+		y3.title = code_name_map[stateCode] + " " + denominator ;
 		myChart3.addSeries("State", dimple.plot.line);
 
 		myChart3.assignColor(stateCode,"Blue");

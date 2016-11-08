@@ -18,7 +18,8 @@ require(dplyr)
 You can also embed plots, for example:
 
 ```{r, echo=FALSE}
-setwd("c:/Users/swigley/Documents/Energy Data")
+setwd("~/Documents/Udacity/D3/Energy By State/USEnergyData")
+#setwd("c:/Users/swigley/Documents/Energy Data")
 getwd()
 list.files()
 energy = read.csv("annual_generation_state.csv",header=TRUE)
@@ -27,10 +28,11 @@ pop = read.csv("US_POP_By_State_1990s-2014.csv",header=TRUE)
 
 tot_energy = subset(energy,TYPE.OF.PRODUCER=="Total Electric Power Industry")
 tot_energy = tot_energy[, !(colnames(tot_energy) %in% c("TYPE.OF.PRODUCER"))]
+stateNames = pop[, (colnames(pop) %in% c("State","Code"))]
 pop = pop[, !(colnames(pop) %in% c("State"))]
 gdp = gdp[, !(colnames(gdp) %in% c("Area"))]
-pop <- melt(pop, id.vars = c("Code"), variable.name = "Year", variable.vale = "pop")
-gdp <- melt(gdp, id.vars = c("Code"), variable.name = "Year", variable.vale = "gdp")
+pop <- melt(pop, id.vars = c("Code"), variable.name = "Year", variable.value = "pop")
+gdp <- melt(gdp, id.vars = c("Code"), variable.name = "Year", variable.value = "gdp")
 pop<-pop %>%
   mutate(Year = substr(Year, 2, 5))
 
@@ -46,14 +48,16 @@ names(tot_energy)[names(tot_energy) == 'YEAR'] <- 'Year'
 names(tot_energy)[names(tot_energy) == 'STATE'] <- 'State'
 names(tot_energy)[names(tot_energy) == 'ENERGY.SOURCE'] <- 'label'
 names(tot_energy)[names(tot_energy) == 'GENERATION'] <- 'value'
+names(stateNames)[names(stateNames)=='State'] <- 'StateName'
+names(stateNames)[names(stateNames)=='Code'] <- 'State'
 
 
 energy_by_pop_gdp_long <-rbind(pop,gdp,tot_energy)
 
 tot_energy_wide  <- dcast(energy_by_pop_gdp_long,  Year + State ~ label , value.var = 'value',fun.aggregate=mean)
 tot_energy_wide[is.na(tot_energy_wide)] <- 0
-
-tot_energy_wide  <- tot_energy_wide[,c('Year',  'State',
+tot_energy_wide <- merge(tot_energy_wide,stateNames,by="State")
+tot_energy_wide  <- tot_energy_wide[,c('Year',  'State', 'StateName',
   'Population',
   'GDP',
   'Coal',
